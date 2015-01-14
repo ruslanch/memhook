@@ -19,12 +19,8 @@
 #define MEMHOOK_RETURN_ADDRESS(nr) \
     __builtin_extract_return_addr(__builtin_return_address(nr))
 
-// namespace boost_private { namespace boost_privatephoenix {} }
-
 namespace memhook {
-    // using namespace boost_private;
-    // namespace phoenix = boost_privatephoenix;
-    using namespace boost;
+    using namespace MEMHOOK_BOOST_NAMESPACE;
 } // memhook
 
 #endif // MEMHOOK_CONFIG_HPP_INCLUDED

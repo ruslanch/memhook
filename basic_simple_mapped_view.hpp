@@ -9,10 +9,10 @@ namespace memhook {
 
 template <typename Traits>
 struct basic_simple_mapped_view : basic_mapped_view<Traits> {
-    typedef basic_mapped_view<Traits> base_t;
-    using typename base_t::traceinfo_t;
-    using typename base_t::mapped_view_req_t;
-    using typename base_t::indexed_container_t;
+    typedef basic_mapped_view<Traits>            base_t;
+    typedef typename base_t::traceinfo_t         traceinfo_t;
+    typedef typename base_t::mapped_view_req_t   mapped_view_req_t;
+    typedef typename base_t::indexed_container_t indexed_container_t;
 
     explicit basic_simple_mapped_view(const char *name)
             : base_t(name) {
