@@ -1,7 +1,7 @@
 #ifndef MEMHOOK_SCOPED_USE_COUNT_HPP_INCLUDED
 #define MEMHOOK_SCOPED_USE_COUNT_HPP_INCLUDED
 
-#include "common.hpp"
+#include <memhook/common.hpp>
 #include <boost/noncopyable.hpp>
 
 namespace memhook {

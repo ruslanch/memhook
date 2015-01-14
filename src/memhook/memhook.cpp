@@ -1,6 +1,5 @@
-#include "config.hpp"
-#include "common.hpp"
-#include "callstack.hpp"
+#include <memhook/common.hpp>
+#include <memhook/callstack.hpp>
 #include "scoped_use_count.hpp"
 #include "mapped_storage.hpp"
 #include <boost/interprocess/smart_ptr/unique_ptr.hpp>

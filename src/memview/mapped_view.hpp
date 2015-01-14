@@ -1,7 +1,7 @@
 #ifndef MEMHOOK_MAPPED_VIEW_HPP_INCLUDED
 #define MEMHOOK_MAPPED_VIEW_HPP_INCLUDED
 
-#include "common.hpp"
+#include <memhook/common.hpp>
 #include <boost/noncopyable.hpp>
 #include <iosfwd>
 
@@ -39,8 +39,8 @@ struct mapped_view_kit : private noncopyable {
     virtual mapped_view_req *make_max_time_from_now_req(const system_clock_t::duration &max_time) = 0;
 };
 
-mapped_view_kit *make_shm_view_kit();
-mapped_view_kit *make_mmf_view_kit();
+movelib::unique_ptr<mapped_view_kit> make_shm_view_kit();
+movelib::unique_ptr<mapped_view_kit> make_mmf_view_kit();
 
 } // memhook
 

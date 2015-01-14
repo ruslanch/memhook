@@ -1,7 +1,8 @@
 #ifndef MEMHOOK_MAPPED_STORAGE_HPP_INCLUDED
 #define MEMHOOK_MAPPED_STORAGE_HPP_INCLUDED
 
-#include "callstack.hpp"
+#include <memhook/common.hpp>
+#include <memhook/callstack.hpp>
 #include <boost/noncopyable.hpp>
 
 namespace memhook {

@@ -1,4 +1,5 @@
-#include "callstack.hpp"
+#include <memhook/common.hpp>
+#include <memhook/callstack.hpp>
 #include "scoped_use_count.hpp"
 #include <boost/unordered_map.hpp>
 #include <boost/thread/thread.hpp>

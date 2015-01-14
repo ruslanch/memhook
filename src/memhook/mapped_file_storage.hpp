@@ -1,7 +1,8 @@
 #ifndef MEMHOOK_MAPPED_FILE_CONTEXT_HPP_INCLUDED
 #define MEMHOOK_MAPPED_FILE_CONTEXT_HPP_INCLUDED
 
-#include "mapped_file_traits.hpp"
+#include <memhook/common.hpp>
+#include <memhook/mapped_file_traits.hpp>
 #include "basic_mapped_storage.hpp"
 
 namespace memhook {

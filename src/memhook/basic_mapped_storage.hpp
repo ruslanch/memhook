@@ -1,10 +1,9 @@
 #ifndef MEMHOOK_BASIC_MAPPED_STORAGE_HPP_INCLUDED
 #define MEMHOOK_BASIC_MAPPED_STORAGE_HPP_INCLUDED
 
-#include "config.hpp"
-#include "common.hpp"
-#include "mapping_traits.hpp"
-#include "scoped_signal.hpp"
+#include <memhook/common.hpp>
+#include <memhook/mapping_traits.hpp>
+#include <memhook/scoped_signal.hpp>
 #include "mapped_storage.hpp"
 #include <boost/algorithm/string.hpp>
 
@@ -14,7 +13,7 @@ namespace {
         timespec ts = {0};
         clock_gettime(CLOCK_REALTIME, &ts);
         return system_clock_t::time_point(system_clock_t::duration(
-            static_cast<system_clock_t::rep>( ts.tv_sec ) * 1000000000 + ts.tv_nsec));
+            static_cast<system_clock_t::rep>(ts.tv_sec) * 1000000000 + ts.tv_nsec));
     }
 } // namespace
 

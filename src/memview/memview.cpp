@@ -1,5 +1,4 @@
-#include "config.hpp"
-#include "common.hpp"
+#include <memhook/common.hpp>
 #include "mapped_view.hpp"
 #include <boost/program_options.hpp>
 #include <boost/shared_ptr.hpp>

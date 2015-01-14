@@ -1,8 +1,9 @@
 #ifndef MEMHOOK_BASIC_MAPPED_VIEW_REQ_HPP_INCLUDED
 #define MEMHOOK_BASIC_MAPPED_VIEW_REQ_HPP_INCLUDED
 
+#include <memhook/common.hpp>
+#include <memhook/mapping_traits.hpp>
 #include "mapped_view.hpp"
-#include "mapping_traits.hpp"
 
 namespace memhook {
 

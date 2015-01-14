@@ -1,8 +1,8 @@
 #ifndef MEMHOOK_INTERPROCESS_SCOPED_LOCK_HPP_INCLUDED
 #define MEMHOOK_INTERPROCESS_SCOPED_LOCK_HPP_INCLUDED
 
-#include "common.hpp"
-#include "scoped_signal.hpp"
+#include <memhook/common.hpp>
+#include <memhook/scoped_signal.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 
