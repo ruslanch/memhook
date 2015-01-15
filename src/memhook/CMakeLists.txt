@@ -11,6 +11,7 @@ add_definitions(
 
 add_library(memhook SHARED
     error_code.cpp
+    error_msg.cpp
     shared_memory_storage.cpp
     mapped_file_storage.cpp
     callstack.cpp

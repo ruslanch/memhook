@@ -1,6 +1,7 @@
 #include <memhook/common.hpp>
 #include <memhook/callstack.hpp>
 #include "scoped_use_count.hpp"
+#include "error_msg.hpp"
 #include <boost/unordered_map.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -11,6 +12,9 @@
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 #include <dlfcn.h>
+
+#define MEMHOOK_CHECK_UNW(call) \
+    if (BOOST_UNLIKELY(call != 0)) { error_msg(#call " failed"); }
 
 namespace memhook
 {
@@ -36,6 +40,7 @@ static ssize_t             callstack_pctx_use_count = 0;
 static const char unknown_tag[] = "<unknown>";
 
 void init_callstack() {
+    MEMHOOK_CHECK_UNW(unw_set_caching_policy(unw_local_addr_space, UNW_CACHE_PER_THREAD));
     movelib::unique_ptr<callstack_internal> ctx(movelib::make_unique<callstack_internal>());
     MEMHOOK_CAS(&callstack_pctx, NULL, ctx.get());
     ctx.release();

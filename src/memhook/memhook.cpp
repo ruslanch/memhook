@@ -2,15 +2,21 @@
 #include <memhook/callstack.hpp>
 #include "scoped_use_count.hpp"
 #include "mapped_storage.hpp"
-#include <boost/interprocess/smart_ptr/unique_ptr.hpp>
-#include <boost/checked_delete.hpp>
+#include "error_msg.hpp"
+#include <boost/move/unique_ptr.hpp>
+#include <boost/array.hpp>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
 #include <malloc.h>
 #include <dlfcn.h>
-#include <sys/mman.h>
+#include <link.h> // dl_iterate_phdr
+#include <sys/mman.h> // mmap
+
+#ifndef MAP_STACK
+#   define MAP_STACK 0x20000
+#endif
 
 /* glibc internal functions, but exported for me */
 extern "C" int _dl_addr(const void *address, Dl_info *info, struct link_map **mapp, const void **symbolp);
@@ -67,29 +73,6 @@ namespace memhook
         }
     } // staticbufalloc
 
-    /* functions to display messages about errors to stderr */
-    /* yes, you can use fprintf(stderr, ...), but it is not safe when the program starts */
-    static const char error_in_dlsym[] = "error in dlsym: ";
-
-    void error_msg(const char *err_s) BOOST_NOEXCEPT_OR_NOTHROW {
-        const size_t err_s_size = strnlen(err_s, 128);
-        const size_t tmpbuf_size = err_s_size + 1;
-        char *tmpbuf = (char *)alloca(tmpbuf_size);
-        strncpy(tmpbuf, err_s, err_s_size);
-        tmpbuf[tmpbuf_size - 1] = '\n';
-        write(STDERR_FILENO, tmpbuf, tmpbuf_size);
-    }
-
-    void dlsym_error_msg(const char *err_s) {
-        const size_t err_s_size = strnlen(err_s, 128);
-        const size_t tmpbuf_size = sizeof(error_in_dlsym) + err_s_size;
-        char *tmpbuf = (char *)alloca(tmpbuf_size);
-        strncpy(tmpbuf, error_in_dlsym, sizeof(error_in_dlsym));
-        strncpy(tmpbuf + sizeof(error_in_dlsym) - 1, err_s, err_s_size);
-        tmpbuf[tmpbuf_size - 1] = '\n';
-        write(STDERR_FILENO, tmpbuf, tmpbuf_size);
-    }
-
 #define MEMHOOK_TRY try
 #define MEMHOOK_CATCH_ALL \
     catch (const std::exception &e) { error_msg(e.what()); } \
@@ -132,6 +115,7 @@ namespace memhook
     typedef int   (*dlfn_posix_memalign)(void **, size_t, size_t);
 
     typedef void *(*dlfn_mmap)(void *, size_t, int, int, int, off_t);
+    typedef void *(*dlfn_mmap64)(void *, size_t, int, int, int, off64_t);
     typedef int   (*dlfn_munmap)(void *, size_t);
 
     typedef void *(*dlfn_dlopen)      (const char *, int);
@@ -159,6 +143,7 @@ namespace memhook
         dlfn_posix_memalign   posix_memalign;
 
         dlfn_mmap             mmap;
+        dlfn_mmap64           mmap64;
         dlfn_munmap           munmap;
 
         /* we override these functions because otherwise we get a deadlock on dlopen(...)
@@ -182,7 +167,6 @@ namespace memhook
         dlfn_gethostbyname2_r gethostbyname2_r;
     } dl_function = {0};
 
-
     void do_initstage0() BOOST_NOEXCEPT_OR_NOTHROW {
         dl_function.free   = &staticbufalloc::free;
         dl_function.malloc = &staticbufalloc::malloc;
@@ -203,6 +187,7 @@ namespace memhook
         dlsym_rtld_next(&dl_function.posix_memalign, "posix_memalign");
 
         dlsym_rtld_next(&dl_function.mmap,   "mmap");
+        dlsym_rtld_next(&dl_function.mmap64, "mmap64");
         dlsym_rtld_next(&dl_function.munmap, "munmap");
     }
 
@@ -374,10 +359,32 @@ namespace memhook
         return memnew;
     } MEMHOOK_CATCH_ALL
 
+#define MEMHOOK_MMAP_ALLOWED_FLAGS (MAP_ANONYMOUS)
+
     void *wrap_mmap(void *addr, size_t size, int prot, int flags,
             int fd, off_t offset) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.mmap(addr, size, prot, flags, fd, offset);
-        if (BOOST_LIKELY(mem && addr == NULL && (flags & MAP_ANONYMOUS) &&
+        const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+        if (BOOST_LIKELY(mem && addr == NULL &&
+                (flags & (allowed_flags | MAP_STACK)) == allowed_flags &&
+                MEMHOOK_CAS(&pctx, NULL, NULL) != NULL)) {
+            const scoped_use_count use_count(&pctx_use_count);
+            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
+            if (BOOST_LIKELY(ctx != NULL)) {
+                callstack_container callstack;
+                get_callstack(callstack);
+                ctx->insert(reinterpret_cast<uintptr_t>(mem), size, callstack);
+            }
+        }
+        return mem;
+    } MEMHOOK_CATCH_ALL
+
+    void *wrap_mmap64(void *addr, size_t size, int prot, int flags,
+            int fd, off64_t offset) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
+        void *const mem = dl_function.mmap64(addr, size, prot, flags, fd, offset);
+        const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+        if (BOOST_LIKELY(mem && addr == NULL &&
+                (flags & (allowed_flags | MAP_STACK)) == allowed_flags &&
                 MEMHOOK_CAS(&pctx, NULL, NULL) != NULL)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
@@ -410,6 +417,7 @@ namespace memhook
     int   wrap_dladdr1(const void *address, Dl_info *info, void **extra_info, int flags);
     int   wrap_dlinfo(void *handle, int request, void *arg, void *dl_caller);
     void *wrap_dlmopen(Lmid_t nsid, const char *file, int mode, void *dl_caller);
+    int dl_iterate_phdr_elfinjection(struct dl_phdr_info *info, size_t size, void *data);
 
     static dlfcn_hook *default_dlfcn_hook = {0};
     static dlfcn_hook  memhook_dlfcn_hook = {
@@ -449,8 +457,13 @@ namespace memhook
     };
 
     void *wrap_dlopen(const char *file, int mode, void *dl_caller) {
-        dlfcn_hook_switch hook_switch;
-        return dlopen(file, mode/*, dl_caller*/);
+        void *h = NULL;
+        {
+            dlfcn_hook_switch hook_switch;
+            h = dlopen(file, mode/*, dl_caller*/);
+        }
+        dl_iterate_phdr(dl_iterate_phdr_elfinjection, (void *)file);
+        return h;
     }
 
     int wrap_dlclose(void *handle) {
@@ -509,6 +522,7 @@ namespace memhook
         /* initstage0 must be already called, but to be on the safe side we call it again, it is safe */
         initstage0();
         initstage1();
+        dl_iterate_phdr(dl_iterate_phdr_elfinjection, NULL);
     }
 
     MEMHOOK_SYMBOL_INIT(102)
@@ -524,7 +538,6 @@ namespace memhook
         fini_pctx_impl();
         fini_callstack();
     } MEMHOOK_CATCH_ALL
-
 
 #define MEMHOOK_CHECK_PTHREAD(call) \
         if (BOOST_UNLIKELY(call != 0)) { error_msg(#call " failed"); abort(); }
@@ -754,6 +767,16 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 }
 
 extern "C" MEMHOOK_API
+void *mmap64(void *addr, size_t length, int prot, int flags, int fd, off64_t offset) {
+    if (no_hook() && dl_function.mmap)
+        return dl_function.mmap64(addr, length, prot, flags, fd, offset);
+
+    no_hook_this no_hook_this;
+    initstage0();
+    return wrap_mmap64(addr, length, prot, flags, fd, offset);
+}
+
+extern "C" MEMHOOK_API
 int munmap(void *addr, size_t length) {
     if (no_hook() && dl_function.munmap)
         return dl_function.munmap(addr, length);
@@ -762,5 +785,118 @@ int munmap(void *addr, size_t length) {
     initstage0();
     return wrap_munmap(addr, length);
 }
+
+namespace memhook {
+    struct wrapped_function_info {
+        const char *name;
+        void       *func;
+    };
+
+    int dl_iterate_phdr_elfinjection(struct dl_phdr_info *info, size_t size, void *data) {
+        if (data != NULL) {
+            if (info->dlpi_name == NULL || strcmp(info->dlpi_name, (const char *)data) != 0)
+                return 0;
+        }
+
+        if (info->dlpi_name && strstr(info->dlpi_name, "libmemhook.so")) {
+            return 0;
+        }
+
+        static array<wrapped_function_info, 28> dl_wrapped_functions = {{
+            {"free",             reinterpret_cast<void *>(&free)                },
+            {"malloc",           reinterpret_cast<void *>(&malloc)              },
+            {"calloc",           reinterpret_cast<void *>(&calloc)              },
+            {"realloc",          reinterpret_cast<void *>(&realloc)             },
+            {"memalign",         reinterpret_cast<void *>(&memalign)            },
+            {"posix_memalign",   reinterpret_cast<void *>(&posix_memalign)      },
+            {"mmap",             reinterpret_cast<void *>(&mmap)                },
+            {"mmap64",           reinterpret_cast<void *>(&mmap64)              },
+            {"munmap",           reinterpret_cast<void *>(&munmap)              },
+            {"dlopen",           reinterpret_cast<void *>(&dlopen)              },
+            {"dlclose",          reinterpret_cast<void *>(&dlclose)             },
+            {"dlsym",            reinterpret_cast<void *>(&dlsym)               },
+            {"dlvsym",           reinterpret_cast<void *>(&dlvsym)              },
+            {"dlerror",          reinterpret_cast<void *>(&dlerror)             },
+            {"dladdr",           reinterpret_cast<void *>(&dladdr)              },
+            {"dladdr1",          reinterpret_cast<void *>(&dladdr1)             },
+            {"dlinfo",           reinterpret_cast<void *>(&dlinfo)              },
+            {"dlmopen",          reinterpret_cast<void *>(&dlmopen)             },
+            {"dl_iterate_phdr",  reinterpret_cast<void *>(&dl_iterate_phdr)     },
+            {"getaddrinfo",      reinterpret_cast<void *>(&getaddrinfo)         },
+            {"getnameinfo",      reinterpret_cast<void *>(&getnameinfo)         },
+            {"gethostbyname",    reinterpret_cast<void *>(&gethostbyname)       },
+            {"gethostbyaddr",    reinterpret_cast<void *>(&gethostbyaddr)       },
+            {"gethostbyname2",   reinterpret_cast<void *>(&gethostbyname2)      },
+            {"gethostent_r",     reinterpret_cast<void *>(&gethostent_r)        },
+            {"gethostbyaddr_r",  reinterpret_cast<void *>(&gethostbyaddr_r)     },
+            {"gethostbyname_r",  reinterpret_cast<void *>(&gethostbyname_r)     },
+            {"gethostbyname2_r", reinterpret_cast<void *>(&gethostbyname2_r)    },
+        }};
+
+        const ElfW(Phdr) *phdr = info->dlpi_phdr;
+        const ElfW(Phdr) *const phdr_end = phdr + info->dlpi_phnum;
+        for (; phdr != phdr_end; ++phdr) {
+            if (phdr->p_type != PT_DYNAMIC)
+                continue;
+
+            const ElfW(Dyn) *dyn  = reinterpret_cast<const ElfW(Dyn) *>(phdr->p_vaddr + info->dlpi_addr);
+            const ElfW(Addr) base = info->dlpi_addr;
+
+            const char *str_table = NULL;
+            ElfW(Sym)  *sym_table = NULL;
+            ElfW(Rela) *rel_table = NULL;
+            ElfW(Xword) str_table_size = 0;
+            ElfW(Xword) sym_table_size = 0;
+            ElfW(Xword) rel_table_size = 0;
+
+            for (const ElfW(Dyn) *d = dyn; d->d_tag != DT_NULL; ++d) {
+                switch (d->d_tag) {
+                case DT_STRTAB:
+                    str_table = reinterpret_cast<const char *>(d->d_un.d_ptr);
+                    break;
+                case DT_JMPREL:
+                    rel_table = reinterpret_cast<ElfW(Rela) *>(d->d_un.d_ptr);
+                    break;
+                case DT_SYMTAB:
+                    sym_table = reinterpret_cast<ElfW(Sym) *>(d->d_un.d_ptr);
+                    break;
+                case DT_STRSZ:
+                    str_table_size = d->d_un.d_val;
+                    break;
+                case DT_PLTRELSZ:
+                    rel_table_size = d->d_un.d_val;
+                    break;
+                case DT_SYMENT:
+                    sym_table_size = d->d_un.d_val;
+                    break;
+                }
+            }
+
+            ElfW(Rela) *const rel_table_end = reinterpret_cast<ElfW(Rela) *>(
+                reinterpret_cast<char *>(rel_table) + rel_table_size);
+            for (ElfW(Rela) *rel = rel_table; rel < rel_table_end; rel++) {
+                ElfW(Word) sym_index =
+#ifdef __x86_64__
+                    ELF64_R_SYM(rel->r_info);
+#else
+                    ELF32_R_SYM(rel->r_info);
+#endif
+                const char *sym_name = str_table + sym_table[sym_index].st_name;
+                void **ppsym = reinterpret_cast<void**>(rel->r_offset + base);
+                for (size_t i = 0; i < dl_wrapped_functions.size(); ++i) {
+                    if (strcmp(dl_wrapped_functions[i].name, sym_name) == 0) {
+                        if (*ppsym != dl_wrapped_functions[i].func) {
+                            void *mem_page = (void *)((intptr_t)ppsym & ~(0x1000 - 1));
+                            mprotect(mem_page, 0x1000, PROT_READ | PROT_WRITE);
+                            *ppsym = dl_wrapped_functions[i].func;
+                        }
+                        break;
+                    } // if
+                } // for
+            } // for
+        } // for
+        return 0;
+   } // dl_iterate_phdr_elfinjection
+} // memhook
 
 #pragma GCC pop_options
