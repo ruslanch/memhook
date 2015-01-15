@@ -877,12 +877,14 @@ namespace memhook {
             ElfW(Rela) *const rel_table_end = reinterpret_cast<ElfW(Rela) *>(
                 reinterpret_cast<char *>(rel_table) + rel_table_size);
             for (ElfW(Rela) *rel = rel_table; rel < rel_table_end; rel++) {
-                ElfW(Word) sym_index =
+                const ElfW(Word) sym_index =
 #ifdef __x86_64__
-                    ELF64_R_SYM(rel->r_info);
+                    ELF64_R_SYM(rel->r_info)
 #else
-                    ELF32_R_SYM(rel->r_info);
+                    ELF32_R_SYM(rel->r_info)
 #endif
+                ;
+
                 const char *sym_name = str_table + sym_table[sym_index].st_name;
                 void **ppsym = reinterpret_cast<void**>(rel->r_offset + base);
                 for (size_t i = 0; i < dl_wrapped_functions.size(); ++i) {
