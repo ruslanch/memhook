@@ -798,9 +798,11 @@ namespace memhook {
                 return 0;
         }
 
-        if (info->dlpi_name && strstr(info->dlpi_name, "libmemhook.so")) {
+        if (info->dlpi_name && strstr(info->dlpi_name, MEMHOOK_TARGET_FILE_NAME)) {
             return 0;
         }
+
+        const intptr_t page_size = getpagesize();
 
 #define MAKE_WRAPPED_FUNCTION_INFO(function) {#function, reinterpret_cast<void *>(&function)}
         static array<wrapped_function_info, 28> dl_wrapped_functions = {{
@@ -886,13 +888,13 @@ namespace memhook {
                 ;
 
                 const char *sym_name = str_table + sym_table[sym_index].st_name;
-                void **ppsym = reinterpret_cast<void**>(rel->r_offset + base);
+                void **psym = reinterpret_cast<void**>(rel->r_offset + base);
                 for (size_t i = 0; i < dl_wrapped_functions.size(); ++i) {
                     if (strcmp(dl_wrapped_functions[i].name, sym_name) == 0) {
-                        if (*ppsym != dl_wrapped_functions[i].func) {
-                            void *mem_page = (void *)((intptr_t)ppsym & ~(0x1000 - 1));
+                        if (*psym != dl_wrapped_functions[i].func) {
+                            void *mem_page = (void *)((intptr_t)psym & ~(page_size - 1));
                             mprotect(mem_page, 0x1000, PROT_READ | PROT_WRITE);
-                            *ppsym = dl_wrapped_functions[i].func;
+                            *psym = dl_wrapped_functions[i].func;
                         }
                         break;
                     } // if

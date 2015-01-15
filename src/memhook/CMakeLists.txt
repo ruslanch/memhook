@@ -7,6 +7,7 @@ include_directories(
     ${LIBUNWIND_INCLUDE_DIR})
 
 add_definitions(
+    -DMEMHOOK_TARGET_FILE_NAME="$<TARGET_LINKER_FILE_NAME:memhook>"
     -fvisibility=hidden)
 
 add_library(memhook SHARED
