@@ -119,6 +119,7 @@ namespace memhook
     typedef int   (*dlfn_munmap)(void *, size_t);
 
     typedef void *(*dlfn_dlopen)      (const char *, int);
+    typedef void *(*dlfn_dlmopen)          (Lmid_t nsid, const char *file, int mode);
     typedef int   (*dlfn_dlclose)     (void *);
     typedef int   (*dlfn_iterate_phdr)(int (*)(struct dl_phdr_info *, size_t, void *), void *);
     typedef void *(*dlfn_dlsym)       (void *, const char *);
@@ -150,6 +151,7 @@ namespace memhook
          * because to get the callstack libunwind uses dl_iterate_phdr(),
          * which in older versions of glibc uses the same mutex with dlopen */
         dlfn_dlopen           dlopen;
+        dlfn_dlmopen          dlmopen;
         dlfn_dlclose          dlclose;
         dlfn_iterate_phdr     dl_iterate_phdr;
         dlfn_dlsym            dlsym;
@@ -194,6 +196,7 @@ namespace memhook
 
     void do_initstage1() BOOST_NOEXCEPT_OR_NOTHROW {
         dlsym_rtld_next(&dl_function.dlopen,          "dlopen");
+        dlsym_rtld_next(&dl_function.dlmopen,         "dlmopen");
         dlsym_rtld_next(&dl_function.dlclose,         "dlclose");
         dlsym_rtld_next(&dl_function.dl_iterate_phdr, "dl_iterate_phdr");
         dlsym_rtld_next(&dl_function.getaddrinfo,     "getaddrinfo");
@@ -466,6 +469,16 @@ namespace memhook
         return h;
     }
 
+    void *wrap_dlmopen(Lmid_t nsid, const char *file, int mode, void *dl_caller) {
+        void *h = NULL;
+        {
+            dlfcn_hook_switch hook_switch;
+            h = dlmopen(nsid, file, mode/*, dl_caller*/);
+        }
+        dl_iterate_phdr(dl_iterate_phdr_elfinjection, (void *)file);
+        return h;
+    }
+
     int wrap_dlclose(void *handle) {
         dlfcn_hook_switch hook_switch;
         return dlclose(handle);
@@ -509,11 +522,6 @@ namespace memhook
     int wrap_dlinfo(void *handle, int request, void *arg, void *dl_caller) {
         dlfcn_hook_switch hook_switch;
         return dlinfo(handle, request, arg/*, dl_caller*/);
-    }
-
-    void *wrap_dlmopen(Lmid_t nsid, const char *file, int mode, void *dl_caller) {
-        dlfcn_hook_switch hook_switch;
-        return dlmopen(nsid, file, mode/*, dl_caller*/);
     }
 
     MEMHOOK_SYMBOL_INIT(101)
@@ -645,6 +653,13 @@ void *dlopen(const char *file, int mode) BOOST_NOEXCEPT_OR_NOTHROW {
     no_hook_this no_hook_this;
     initstage1();
     return dl_function.dlopen(file, mode);
+}
+
+extern "C" MEMHOOK_API
+void *dlmopen(Lmid_t nsid, const char *file, int mode) {
+    no_hook_this no_hook_this;
+    initstage1();
+    return dl_function.dlmopen(nsid, file, mode);
 }
 
 extern "C" MEMHOOK_API
