@@ -5,6 +5,7 @@
 #include <memhook/scoped_signal.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/move/unique_ptr.hpp>
 
 namespace memhook {
 

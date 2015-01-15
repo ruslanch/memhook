@@ -908,7 +908,7 @@ namespace memhook {
                     if (strcmp(dl_wrapped_functions[i].name, sym_name) == 0) {
                         if (*psym != dl_wrapped_functions[i].func) {
                             void *mem_page = (void *)((intptr_t)psym & ~(page_size - 1));
-                            mprotect(mem_page, 0x1000, PROT_READ | PROT_WRITE);
+                            mprotect(mem_page, page_size, PROT_READ | PROT_WRITE);
                             *psym = dl_wrapped_functions[i].func;
                         }
                         break;

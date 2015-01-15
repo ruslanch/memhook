@@ -3,7 +3,7 @@
 
 #include "config.hpp"
 #include <boost/cstdint.hpp>
-#include <boost/chrono.hpp>
+#include <boost/chrono/system_clocks.hpp>
 #include <boost/container/string.hpp>
 #include <string>
 

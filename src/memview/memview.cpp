@@ -7,6 +7,7 @@
 #include <boost/checked_delete.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/chrono/chrono_io.hpp>
 #include <iostream>
 #include <cstdlib>
 

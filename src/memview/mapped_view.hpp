@@ -3,6 +3,7 @@
 
 #include <memhook/common.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/move/unique_ptr.hpp>
 #include <iosfwd>
 
 namespace memhook {
