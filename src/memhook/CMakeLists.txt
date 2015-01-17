@@ -18,7 +18,7 @@ add_library(memhook SHARED
     callstack.cpp
     memhook.cpp)
 
-target_link_libraries(memhook
+target_link_libraries(memhook LINK_PRIVATE
     ${CMAKE_THREAD_LIBS_INIT}
     ${LIBUNWIND_LIBRARIES}
     pthread rt dl)

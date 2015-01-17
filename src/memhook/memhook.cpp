@@ -465,6 +465,14 @@ namespace memhook
             dlfcn_hook_switch hook_switch;
             h = dlopen(file, mode/*, dl_caller*/);
         }
+
+        // link_map *map = NULL;
+        // dlinfo(h, RTLD_DI_LINKMAP, &map);
+        // while (map != NULL) {
+        //         fprintf(stderr, "%p: %s\n", map->l_addr, map->l_name);
+        //         map = map->l_next;
+        // }
+
         dl_iterate_phdr(dl_iterate_phdr_elfinjection, (void *)file);
         return h;
     }
@@ -524,7 +532,6 @@ namespace memhook
         return dlinfo(handle, request, arg/*, dl_caller*/);
     }
 
-    MEMHOOK_SYMBOL_INIT(101)
     void init_dl() BOOST_NOEXCEPT_OR_NOTHROW {
         no_hook_this no_hook_this;
         /* initstage0 must be already called, but to be on the safe side we call it again, it is safe */
@@ -533,14 +540,12 @@ namespace memhook
         dl_iterate_phdr(dl_iterate_phdr_elfinjection, NULL);
     }
 
-    MEMHOOK_SYMBOL_INIT(102)
     void init_pctx() BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         no_hook_this no_hook_this;
         init_callstack();
         init_pctx_impl();
     } MEMHOOK_CATCH_ALL
 
-    MEMHOOK_SYMBOL_FINI(102)
     void fini_pctx() BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         no_hook_this no_hook_this;
         fini_pctx_impl();
@@ -550,7 +555,6 @@ namespace memhook
 #define MEMHOOK_CHECK_PTHREAD(call) \
         if (BOOST_UNLIKELY(call != 0)) { error_msg(#call " failed"); abort(); }
 
-    MEMHOOK_SYMBOL_INIT(103)
     void init_dlfcn_hook() BOOST_NOEXCEPT_OR_NOTHROW {
         pthread_mutexattr_t dlfcn_hook_mutex_attr;
         MEMHOOK_CHECK_PTHREAD(pthread_mutexattr_init(&dlfcn_hook_mutex_attr));
@@ -564,13 +568,25 @@ namespace memhook
         _dlfcn_hook = &memhook_dlfcn_hook;
     }
 
-    MEMHOOK_SYMBOL_FINI(103)
     void fini_dlfcn_hook() BOOST_NOEXCEPT_OR_NOTHROW {
         {
             dlfcn_hook_mutex_lock lock;
             _dlfcn_hook = default_dlfcn_hook;
         }
         pthread_mutex_destroy(&dlfcn_hook_mutex);
+    }
+
+    MEMHOOK_SYMBOL_INIT(100)
+    void memhook_init() BOOST_NOEXCEPT_OR_NOTHROW {
+        init_dl();
+        init_pctx();
+        init_dlfcn_hook();
+    }
+
+    MEMHOOK_SYMBOL_FINI(100)
+    void memhook_fini() BOOST_NOEXCEPT_OR_NOTHROW {
+        fini_dlfcn_hook();
+        fini_pctx();
     }
 
 } // memhook
