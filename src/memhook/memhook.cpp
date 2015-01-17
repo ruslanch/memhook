@@ -273,7 +273,7 @@ namespace memhook
     }
 
     void wrap_free(void *mem) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
-        if (BOOST_LIKELY(mem && MEMHOOK_CAS(&pctx, NULL, NULL))) {
+        if (BOOST_LIKELY(mem != NULL)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
@@ -285,7 +285,7 @@ namespace memhook
 
     void *wrap_malloc(size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.malloc(size);
-        if (BOOST_LIKELY(mem && MEMHOOK_CAS(&pctx, NULL, NULL))) {
+        if (BOOST_LIKELY(mem != NULL)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
@@ -299,7 +299,7 @@ namespace memhook
 
     void *wrap_calloc(size_t nmemb, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.calloc(nmemb, size);
-        if (BOOST_LIKELY(mem && MEMHOOK_CAS(&pctx, NULL, NULL))) {
+        if (BOOST_LIKELY(mem != NULL)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
@@ -313,7 +313,7 @@ namespace memhook
 
     void *wrap_memalign(size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.memalign(alignment, size);
-        if (BOOST_LIKELY(mem && MEMHOOK_CAS(&pctx, NULL, NULL))) {
+        if (BOOST_LIKELY(mem != NULL)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
@@ -327,7 +327,7 @@ namespace memhook
 
     int wrap_posix_memalign(void **memptr, size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         const int ret = dl_function.posix_memalign(memptr, alignment, size);
-        if (BOOST_LIKELY(ret == 0 && *memptr && MEMHOOK_CAS(&pctx, NULL, NULL))) {
+        if (BOOST_LIKELY(ret == 0 && *memptr != NULL)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
@@ -341,22 +341,20 @@ namespace memhook
 
     void *wrap_realloc(void *mem, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const memnew = dl_function.realloc(mem, size);
-        if (BOOST_LIKELY(MEMHOOK_CAS(&pctx, NULL, NULL) != NULL)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                if (mem) {
-                    if (!memnew || memnew != mem)
-                        ctx->erase(reinterpret_cast<uintptr_t>(mem));
-                    else if (mem == memnew)
-                        ctx->update_size(reinterpret_cast<uintptr_t>(mem), size);
-                }
+        const scoped_use_count use_count(&pctx_use_count);
+        mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
+        if (BOOST_LIKELY(ctx != NULL)) {
+            if (mem) {
+                if (!memnew || memnew != mem)
+                    ctx->erase(reinterpret_cast<uintptr_t>(mem));
+                else if (mem == memnew)
+                    ctx->update_size(reinterpret_cast<uintptr_t>(mem), size);
+            }
 
-                if ((!mem && memnew) || (memnew && mem != memnew)) {
-                    callstack_container callstack;
-                    get_callstack(callstack);
-                    ctx->insert(reinterpret_cast<uintptr_t>(memnew), size, callstack);
-                }
+            if ((!mem && memnew) || (memnew && mem != memnew)) {
+                callstack_container callstack;
+                get_callstack(callstack);
+                ctx->insert(reinterpret_cast<uintptr_t>(memnew), size, callstack);
             }
         }
         return memnew;
@@ -368,9 +366,7 @@ namespace memhook
             int fd, off_t offset) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.mmap(addr, size, prot, flags, fd, offset);
         const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-        if (BOOST_LIKELY(mem && addr == NULL &&
-                (flags & (allowed_flags | MAP_STACK)) == allowed_flags &&
-                MEMHOOK_CAS(&pctx, NULL, NULL) != NULL)) {
+        if (BOOST_LIKELY(mem && addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
@@ -386,9 +382,7 @@ namespace memhook
             int fd, off64_t offset) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.mmap64(addr, size, prot, flags, fd, offset);
         const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-        if (BOOST_LIKELY(mem && addr == NULL &&
-                (flags & (allowed_flags | MAP_STACK)) == allowed_flags &&
-                MEMHOOK_CAS(&pctx, NULL, NULL) != NULL)) {
+        if (BOOST_LIKELY(mem && addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
@@ -401,7 +395,7 @@ namespace memhook
     } MEMHOOK_CATCH_ALL
 
     int wrap_munmap(void *mem, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
-        if (BOOST_LIKELY(mem && MEMHOOK_CAS(&pctx, NULL, NULL))) {
+        if (BOOST_LIKELY(mem != NULL)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {

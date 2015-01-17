@@ -100,9 +100,6 @@ static void get_callstack_procinfo(callstack_internal *ctx, unw_word_t ip, unw_c
 }
 
 void get_callstack(callstack_container &callstack) {
-    if (BOOST_UNLIKELY(MEMHOOK_CAS(&callstack_pctx, NULL, NULL) == NULL))
-        return;
-
     const scoped_use_count use_count(&callstack_pctx_use_count);
     callstack_internal *const ctx = MEMHOOK_CAS(&callstack_pctx, NULL, NULL);
     if (BOOST_UNLIKELY(ctx == NULL))
