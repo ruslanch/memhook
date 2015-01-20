@@ -40,18 +40,16 @@ private:
 
 template <typename Traits>
 struct basic_mapped_view : basic_mapped_view_base {
-    typedef traceinfo<Traits>             traceinfo_t;
-    typedef basic_mapped_view_req<Traits> mapped_view_req_t;
-
-    typedef typename Traits::segment segment_t;
-    segment_t segment;
-
+    typedef typename Traits::segment                         segment_t;
+    typedef traceinfo<Traits>                                traceinfo_t;
+    typedef basic_mapped_view_req<Traits>                    mapped_view_req_t;
     typedef mapped_container<Traits>                         mapped_container_t;
     typedef typename mapped_container_t::indexed_container_t indexed_container_t;
     typedef typename mapped_container_t::symbol_table_t      symbol_table_t;
-    mapped_container_t *container;
 
-    ptr_vector<mapped_view_req_t> reqs_;
+    segment_t                     segment;
+    mapped_container_t           *container;
+    ptr_vector<mapped_view_req_t> requirements;
 
     explicit basic_mapped_view(const char *name);
     void write(std::ostream &os);
@@ -62,6 +60,7 @@ struct basic_mapped_view : basic_mapped_view_base {
 
     const char *resolve_shl_path(uintptr_t shl_addr) const;
     const char *resolve_procname(uintptr_t ip) const;
+    bool check_requirements(const traceinfo_t &tinfo) const;
 
 protected:
     virtual void do_write(std::ostream &os) = 0;
@@ -71,7 +70,7 @@ template <typename Traits>
 basic_mapped_view<Traits>::basic_mapped_view(const char *name)
     : segment(interprocess::open_only, name)
     , container(segment.template find<mapped_container_t>(MEMHOOK_SHARED_CONTAINER).first)
-    , reqs_()
+    , requirements()
 {}
 
 template <typename Traits>
@@ -82,7 +81,7 @@ void basic_mapped_view<Traits>::write(std::ostream &os) {
 
 template <typename Traits>
 void basic_mapped_view<Traits>::add_req(mapped_view_req *req) {
-    reqs_.push_back(static_cast<mapped_view_req_t *>(req));
+    requirements.push_back(static_cast<mapped_view_req_t *>(req));
 }
 
 template <typename Traits>
@@ -127,6 +126,13 @@ const char *basic_mapped_view<Traits>::resolve_procname(uintptr_t ip) const {
         return iter->second.c_str();
     }
     return mapped_view_detail::unknown_tag;
+}
+
+template <typename Traits>
+bool basic_mapped_view<Traits>::check_requirements(const traceinfo_t &tinfo) const {
+    return find_if(requirements,
+            !bind(&mapped_view_req_t::invoke, _1, cref(tinfo))
+        ) == requirements.end();
 }
 
 } // memhook

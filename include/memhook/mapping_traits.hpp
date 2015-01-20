@@ -4,9 +4,9 @@
 #include "common.hpp"
 #include "callstack.hpp"
 #include <boost/interprocess/allocators/allocator.hpp>
-#include <boost/interprocess/containers/string.hpp>
-#include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
+#include <boost/container/string.hpp>
+#include <boost/container/vector.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -49,7 +49,7 @@ struct traceinfo : private noncopyable {
     typedef typename Traits::segment_manager   segment_manager;
     typedef typename Traits::generic_allocator generic_allocator;
 
-    typedef interprocess::vector<
+    typedef container::vector<
             traceinfo_callstack_item,
             interprocess::allocator<traceinfo_callstack_item, segment_manager>
         > traceinfo_callstack_container;
@@ -104,7 +104,7 @@ struct mapped_container : interprocess::interprocess_mutex {
     > indexed_container_t;
     indexed_container_t indexed_container;
 
-    typedef interprocess::basic_string<
+    typedef container::basic_string<
             CharT,
             std::char_traits<CharT>,
             interprocess::allocator<CharT, segment_manager>

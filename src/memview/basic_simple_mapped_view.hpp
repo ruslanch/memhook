@@ -8,89 +8,66 @@
 namespace memhook {
 
 template <typename Traits>
-struct indexed_container_printer : std::unary_function<traceinfo<Traits>, bool> {
-    typedef basic_mapped_view<Traits> basic_mapped_view_t;
+struct indexed_container_simple_printer : std::unary_function<traceinfo<Traits>, bool> {
+    typedef basic_mapped_view<Traits> mapped_view_t;
     typedef traceinfo<Traits>         traceinfo_t;
 
-    basic_mapped_view_t *view_;
-    std::ostream        *os_;
+    mapped_view_t &view;
+    std::ostream  &os;
 
-    indexed_container_printer(basic_mapped_view_t *view, std::ostream &os)
-            : view_(view), os_(&os) {}
+    indexed_container_simple_printer(mapped_view_t &view, std::ostream &os)
+            : view(view), os(os) {}
 
-    bool operator()(const traceinfo_t &tinfo) const
-    {
+    bool operator()(const traceinfo_t &tinfo) const {
         if (mapped_view_detail::is_interrupted())
             return false;
 
-        if (find_if(view_->reqs_, !bind(&basic_mapped_view_req<Traits>::invoke, _1, cref(tinfo)))
-                != view_->reqs_.end())
-            return true;
+        if (view.check_requirements(tinfo)) {
+            const time_t ttsec = system_clock_t::to_time_t(tinfo.timestamp);
+            const int_least64_t nsec = (tinfo.timestamp - system_clock_t::from_time_t(ttsec)).count();
+            struct tm tm = {0};
+            (void)localtime_r(&ttsec, &tm);
 
-        const time_t ttsec = system_clock_t::to_time_t(tinfo.timestamp);
-        const int_least64_t nsec = (tinfo.timestamp - system_clock_t::from_time_t(ttsec)).count();
-        struct tm tm = {0};
-        (void)localtime_r(&ttsec, &tm);
+            using namespace spirit::karma;
+            spirit::karma::ostream_iterator<char> sink(os);
+            generate(sink, "0x" << hex << ", size=" << ulong_long
+                << ", ts="
+                << right_align(4, '0')[int_] << '-' << right_align(2, '0')[int_] << '-' << right_align(2, '0')[int_]
+                << ' '
+                << right_align(2, '0')[int_] << ':' << right_align(2, '0')[int_] << ':' << right_align(2, '0')[int_]
+                << '.' << ulong_long << '\n'
+                , tinfo.address, tinfo.memsize
+                , tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday
+                , tm.tm_hour, tm.tm_min, tm.tm_sec
+                , nsec
+            );
 
-        spirit::karma::ostream_iterator<char> sink(*os_);
-        using namespace spirit::karma;
-        generate(sink, "0x" << hex
-            << ", size="
-            << ulong_long
-            << ", ts="
-            << right_align(4, '0')[int_]
-            << '-'
-            << right_align(2, '0')[int_]
-            << '-'
-            << right_align(2, '0')[int_]
-            << ' '
-            << right_align(2, '0')[int_]
-            << ':'
-            << right_align(2, '0')[int_]
-            << ':'
-            << right_align(2, '0')[int_]
-            << '.'
-            << ulong_long
-            << '\n'
-            , tinfo.address
-            , tinfo.memsize
-            , tm.tm_year + 1900
-            , tm.tm_mon + 1
-            , tm.tm_mday
-            , tm.tm_hour
-            , tm.tm_min
-            , tm.tm_sec
-            , nsec
-        );
-
-        if (view_->is_show_callstack())
-            for_each(tinfo.callstack, *this);
-
+            if (view.is_show_callstack())
+                for_each(tinfo.callstack, *this);
+        }
         return true;
     }
 
     void operator()(const traceinfo_callstack_item &item) const {
-        *os_ << "  [ip=0x" << std::hex << item.ip << ", sp=0x" << item.sp << "] "
-             << view_->resolve_shl_path(item.shl_addr)
-             << '(' << view_->cxa_demangle(view_->resolve_procname(item.ip)).get()
-             << " +0x" << item.offp << ")\n";
+        os << "  [ip=0x" << std::hex << item.ip << ", sp=0x" << item.sp << "] "
+           << view.resolve_shl_path(item.shl_addr) << '('
+           << view.cxa_demangle(view.resolve_procname(item.ip)).get()
+           << " +0x" << item.offp << ")\n";
     }
 };
 
 template <typename Traits>
 struct basic_simple_mapped_view : basic_mapped_view<Traits> {
-    typedef basic_mapped_view<Traits>            base_t;
-    typedef typename base_t::indexed_container_t indexed_container_t;
-
-    explicit basic_simple_mapped_view(const char *name) : base_t(name) {}
-
+    typedef basic_mapped_view<Traits>                   mapped_view_t;
+    typedef typename mapped_view_t::indexed_container_t indexed_container_t;
+    explicit basic_simple_mapped_view(const char *name) : mapped_view_t(name) {}
 protected:
     void do_write(std::ostream &os);
 };
 
 template <typename Traits>
 void basic_simple_mapped_view<Traits>::do_write(std::ostream &os) {
-    indexed_container_printer<Traits> printer(this, os);
+    indexed_container_simple_printer<Traits> printer(*this, os);
     if (this->is_sort_by_address())
     {
         typedef typename indexed_container_t::template nth_index<0>::type index0;
