@@ -21,9 +21,21 @@ bool is_interrupted();
 } // mapped_view_detail
 
 struct basic_mapped_view_base : mapped_view {
-protected:
+    bool is_no_lock()         const { return options_ & (uint32_t)no_lock;         }
+    bool is_show_callstack()  const { return options_ & (uint32_t)show_callstack;  }
+    bool is_sort_by_address() const { return options_ & (uint32_t)sort_by_address; }
+    bool is_sort_by_size()    const { return options_ & (uint32_t)sort_by_size;    }
+    bool is_sort_by_time()    const { return options_ & (uint32_t)sort_by_time;    }
+
     typedef movelib::unique_ptr<const char, void (*)(const char *)> unique_char_buf_t;
     unique_char_buf_t cxa_demangle(const char *source) BOOST_NOEXCEPT_OR_NOTHROW;
+
+protected:
+    basic_mapped_view_base() : options_(sort_by_time) {}
+    uint32_t get_options() const { return options_; }
+    void set_options(uint32_t options) { options_ = options; }
+private:
+    uint32_t options_;
 };
 
 template <typename Traits>
@@ -40,7 +52,6 @@ struct basic_mapped_view : basic_mapped_view_base {
     mapped_container_t *container;
 
     ptr_vector<mapped_view_req_t> reqs_;
-    uint32_t options_;
 
     explicit basic_mapped_view(const char *name);
     void write(std::ostream &os);
@@ -49,17 +60,11 @@ struct basic_mapped_view : basic_mapped_view_base {
     std::size_t get_size();
     std::size_t get_free_memory();
 
-protected:
-    virtual void do_write(std::ostream &os) = 0;
-
-    bool is_no_lock()         const { return options_ & (uint32_t)no_lock;         }
-    bool is_show_callstack()  const { return options_ & (uint32_t)show_callstack;  }
-    bool is_sort_by_address() const { return options_ & (uint32_t)sort_by_address; }
-    bool is_sort_by_size()    const { return options_ & (uint32_t)sort_by_size;    }
-    bool is_sort_by_time()    const { return options_ & (uint32_t)sort_by_time;    }
-
     const char *resolve_shl_path(uintptr_t shl_addr) const;
     const char *resolve_procname(uintptr_t ip) const;
+
+protected:
+    virtual void do_write(std::ostream &os) = 0;
 };
 
 template <typename Traits>
@@ -67,7 +72,6 @@ basic_mapped_view<Traits>::basic_mapped_view(const char *name)
     : segment(interprocess::open_only, name)
     , container(segment.template find<mapped_container_t>(MEMHOOK_SHARED_CONTAINER).first)
     , reqs_()
-    , options_(sort_by_time)
 {}
 
 template <typename Traits>
@@ -83,14 +87,16 @@ void basic_mapped_view<Traits>::add_req(mapped_view_req *req) {
 
 template <typename Traits>
 void basic_mapped_view<Traits>::set_option(uint32_t option, bool setval) {
+    uint32_t options = this->get_options();
     const uint32_t sortmask = 0x00f0;
     if (option & sortmask)
-        options_ &= ~sortmask;
+        options &= ~sortmask;
 
     if (setval)
-        options_ |= option;
+        options |= option;
     else
-        options_ &= ~option;
+        options &= ~option;
+    this->set_options(options);
 }
 
 template <typename Traits>

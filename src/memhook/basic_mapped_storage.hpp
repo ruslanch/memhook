@@ -79,7 +79,7 @@ private:
 
     struct field_memsize_setter {
         std::size_t memsize;
-        field_memsize_setter(std::size_t memsize) : memsize(memsize) {}
+        explicit field_memsize_setter(std::size_t memsize) : memsize(memsize) {}
         void operator()(traceinfo_t &tinfo) const {
             tinfo.memsize = memsize;
         }

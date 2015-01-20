@@ -570,14 +570,14 @@ namespace memhook
         pthread_mutex_destroy(&dlfcn_hook_mutex);
     }
 
-    MEMHOOK_SYMBOL_INIT(100)
+    MEMHOOK_SYMBOL_INIT(101)
     void memhook_init() BOOST_NOEXCEPT_OR_NOTHROW {
         init_dl();
         init_pctx();
         init_dlfcn_hook();
     }
 
-    MEMHOOK_SYMBOL_FINI(100)
+    MEMHOOK_SYMBOL_FINI(101)
     void memhook_fini() BOOST_NOEXCEPT_OR_NOTHROW {
         fini_dlfcn_hook();
         fini_pctx();

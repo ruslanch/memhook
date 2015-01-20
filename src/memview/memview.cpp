@@ -28,6 +28,7 @@ namespace memhook { namespace detail {
             ("mapped-file,f",     po::value<std::string>(),
                 "use memory mapped file")
             ("show-callstack,c",  po::value<bool>()->implicit_value(true), "print callstack")
+            ("aggregate,a",       po::value<bool>()->implicit_value(true), "aggregate")
             ("sort-by-time,t",    "sort by timestamp")
             ("sort-by-size,s",    "sort by allocation size")
             ("sort-by-address,p", "sort by allocation address")
@@ -119,7 +120,13 @@ int main(int argc, char const *argv[])
             get<1>(ctx).swap(kit);
         }
 
-        movelib::unique_ptr<mapped_view> view(get<1>(ctx)->make_view(get<0>(ctx).c_str()));
+        movelib::unique_ptr<mapped_view> view;
+        if (options_map.count("aggregate")) {
+            view.reset(get<1>(ctx)->make_aggregated_view(get<0>(ctx).c_str()));
+        } else {
+            view.reset(get<1>(ctx)->make_view(get<0>(ctx).c_str()));
+        }
+
         if (options_map.count("no-lock"))
             view->set_option(mapped_view::no_lock, options_map["no-lock"].as<bool>());
 

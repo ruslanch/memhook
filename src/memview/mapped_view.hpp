@@ -33,6 +33,7 @@ struct mapped_view : private noncopyable {
 struct mapped_view_kit : private noncopyable {
     virtual ~mapped_view_kit() {}
     virtual mapped_view     *make_view(const char *name) = 0;
+    virtual mapped_view     *make_aggregated_view(const char *name) = 0;
     virtual mapped_view_req *make_min_size_req(std::size_t minsize) = 0;
     virtual mapped_view_req *make_min_time_req(const system_clock_t::time_point &min_time) = 0;
     virtual mapped_view_req *make_max_time_req(const system_clock_t::time_point &max_time) = 0;
