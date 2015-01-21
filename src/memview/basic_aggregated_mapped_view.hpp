@@ -15,29 +15,61 @@
 
 namespace memhook {
 
+typedef container::vector<traceinfo_callstack_item>
+    aggregated_callstack;
+
 struct aggregated_traceinfo {
-    typedef container::vector<traceinfo_callstack_item>
-            callstack_container;
+    std::size_t memsize;
+    std::size_t times;
+    aggregated_callstack callstack;
 
-    std::size_t         hash;
-    std::size_t         memsize;
-    std::size_t         times;
-    callstack_container callstack;
-
-    template <typename T, typename A>
-    aggregated_traceinfo(std::size_t hash, std::size_t memsize, std::size_t times,
-                const container::vector<T, A> &a_callstack)
-            : hash(hash)
-            , memsize(memsize)
+    template <typename A>
+    aggregated_traceinfo(std::size_t memsize, std::size_t times,
+                const container::vector<traceinfo_callstack_item, A> &a_callstack)
+            : memsize(memsize)
             , times(times)
             , callstack(a_callstack.begin(), a_callstack.end()) {}
+};
+
+struct traceinfo_callstack_item_hash_by_ip_and_sp {
+    std::size_t operator()(std::size_t seed, const traceinfo_callstack_item &item) const {
+        hash_combine(seed, item.ip);
+        hash_combine(seed, item.sp);
+        return seed;
+    }
+};
+
+struct callstack_container_hash_by_ip_and_sp {
+    template <typename A>
+    std::size_t operator()(const container::vector<traceinfo_callstack_item, A> &callstack) const {
+        std::size_t seed = 0;
+        return accumulate(callstack, seed, traceinfo_callstack_item_hash_by_ip_and_sp());
+    }
+};
+
+struct traceinfo_callstack_item_equal_by_ip_and_sp {
+    bool operator()(const traceinfo_callstack_item &lhs, const traceinfo_callstack_item &rhs) const {
+        return lhs.ip == rhs.ip && lhs.sp == rhs.sp;
+    }
+};
+
+struct callstack_container_equal_by_ip_and_sp {
+    template <typename A1, typename A2>
+    bool operator()(const container::vector<traceinfo_callstack_item, A1> &lhs,
+                    const container::vector<traceinfo_callstack_item, A2> &rhs) const {
+        if (lhs.size() != rhs.size())
+            return false;
+        return std::equal(lhs.begin(), lhs.end(), rhs.begin(),
+            traceinfo_callstack_item_equal_by_ip_and_sp());
+    }
 };
 
 typedef multi_index_container<
     aggregated_traceinfo,
     multi_index::indexed_by<
         multi_index::hashed_unique<
-            multi_index::member<aggregated_traceinfo, std::size_t, &aggregated_traceinfo::hash>
+            multi_index::member<aggregated_traceinfo, aggregated_callstack, &aggregated_traceinfo::callstack>,
+            callstack_container_hash_by_ip_and_sp, callstack_container_equal_by_ip_and_sp
         >,
         multi_index::ordered_non_unique<
             multi_index::member<aggregated_traceinfo, std::size_t, &aggregated_traceinfo::memsize>
@@ -83,14 +115,13 @@ struct aggregated_indexed_container_builder : std::unary_function<traceinfo<Trai
             return false;
 
         if (view.check_requirements(tinfo)) {
-            const std::size_t hash = accumulate(tinfo.callstack, 0, traceinfo_callstack_item_by_ip_hasher());
             typedef indexed_container_t::nth_index<0>::type index0;
             index0 &idx = get<0>(indexed_container);
-            index0::iterator iter = idx.find(hash);
+            index0::iterator iter = idx.find(tinfo.callstack);
             if (iter != idx.end()) {
                 idx.modify(iter, aggregated_traceinfo_fields_updater(tinfo.memsize));
             } else {
-                indexed_container.emplace(hash, tinfo.memsize, 1, tinfo.callstack);
+                indexed_container.emplace(tinfo.memsize, 1, tinfo.callstack);
             }
         }
         return true;
@@ -146,7 +177,7 @@ void basic_aggregated_mapped_view<Traits>::do_write(std::ostream &os) {
 
     typedef typename indexed_container_t::template nth_index<0>::type index0;
     index0 &idx = get<0>(this->container->indexed_container);
-    if (find_if(idx, std::not1(builder)) != idx.end())
+    if (range::find_if(idx, std::not1(builder)) != idx.end())
         return;
 
     aggregated_indexed_container_printer<Traits> printer(*this, os);
@@ -154,13 +185,13 @@ void basic_aggregated_mapped_view<Traits>::do_write(std::ostream &os) {
     {
         typedef aggregated_indexed_container::nth_index<1>::type index1;
         index1 &idx = get<1>(indexed_container);
-        find_if(idx, std::not1(printer));
+        range::find_if(idx, std::not1(printer));
     }
     else
     {
         typedef aggregated_indexed_container::nth_index<2>::type index2;
         index2 &idx = get<2>(indexed_container);
-        find_if(idx, std::not1(printer));
+        range::find_if(idx, std::not1(printer));
     }
 }
 
