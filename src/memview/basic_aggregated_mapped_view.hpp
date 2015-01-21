@@ -11,6 +11,7 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/range/numeric.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 
 namespace memhook {
 
@@ -145,7 +146,7 @@ void basic_aggregated_mapped_view<Traits>::do_write(std::ostream &os) {
 
     typedef typename indexed_container_t::template nth_index<0>::type index0;
     index0 &idx = get<0>(this->container->indexed_container);
-    if (std::find_if(idx.begin(), idx.end(), std::not1(builder)) != idx.end())
+    if (find_if(idx, std::not1(builder)) != idx.end())
         return;
 
     aggregated_indexed_container_printer<Traits> printer(*this, os);
@@ -153,13 +154,13 @@ void basic_aggregated_mapped_view<Traits>::do_write(std::ostream &os) {
     {
         typedef aggregated_indexed_container::nth_index<1>::type index1;
         index1 &idx = get<1>(indexed_container);
-        std::find_if(idx.begin(), idx.end(), std::not1(printer));
+        find_if(idx, std::not1(printer));
     }
     else
     {
         typedef aggregated_indexed_container::nth_index<2>::type index2;
         index2 &idx = get<2>(indexed_container);
-        std::find_if(idx.begin(), idx.end(), std::not1(printer));
+        find_if(idx, std::not1(printer));
     }
 }
 

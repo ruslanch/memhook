@@ -4,6 +4,7 @@
 #include "basic_mapped_view.hpp"
 #include <boost/spirit/include/karma.hpp>
 #include <boost/spirit/include/karma_stream.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 
 namespace memhook {
 
@@ -72,19 +73,19 @@ void basic_simple_mapped_view<Traits>::do_write(std::ostream &os) {
     {
         typedef typename indexed_container_t::template nth_index<0>::type index0;
         index0 &idx = get<0>(this->container->indexed_container);
-        std::find_if(idx.begin(), idx.end(), std::not1(printer));
+        find_if(idx, std::not1(printer));
     }
     else if (this->is_sort_by_size())
     {
         typedef typename indexed_container_t::template nth_index<2>::type index2;
         index2 &idx = get<2>(this->container->indexed_container);
-        std::find_if(idx.begin(), idx.end(), std::not1(printer));
+        find_if(idx, std::not1(printer));
     }
     else
     {
         typedef typename indexed_container_t::template nth_index<1>::type index1;
         index1 &idx = get<1>(this->container->indexed_container);
-        std::find_if(idx.begin(), idx.end(), std::not1(printer));
+        find_if(idx, std::not1(printer));
     }
 }
 
