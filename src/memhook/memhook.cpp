@@ -365,8 +365,9 @@ namespace memhook
     void *wrap_mmap(void *addr, size_t size, int prot, int flags,
             int fd, off_t offset) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.mmap(addr, size, prot, flags, fd, offset);
-        const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-        if (BOOST_LIKELY(mem && addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags)) {
+        // const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+        if (BOOST_LIKELY(mem && fd < 0 && (flags & MAP_PRIVATE)
+                /*addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags*/)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
@@ -381,8 +382,9 @@ namespace memhook
     void *wrap_mmap64(void *addr, size_t size, int prot, int flags,
             int fd, off64_t offset) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.mmap64(addr, size, prot, flags, fd, offset);
-        const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-        if (BOOST_LIKELY(mem && addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags)) {
+        // const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+        if (BOOST_LIKELY(mem && fd < 0 && (flags & MAP_PRIVATE)
+                /*addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags*/)) {
             const scoped_use_count use_count(&pctx_use_count);
             mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
             if (BOOST_LIKELY(ctx != NULL)) {
