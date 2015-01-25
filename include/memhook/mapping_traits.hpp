@@ -44,8 +44,17 @@ struct traceinfo_callstack_item_maker {
     }
 };
 
+struct traceinfo_base {
+    traceinfo_base(uintptr_t address, size_t memsize, const system_clock_t::time_point &timestamp)
+            : address(address), memsize(memsize), timestamp(timestamp) {}
+
+    uintptr_t                  address;
+    std::size_t                memsize;
+    system_clock_t::time_point timestamp;
+};
+
 template <typename Traits>
-struct traceinfo : private noncopyable {
+struct traceinfo : traceinfo_base, private noncopyable {
     typedef typename Traits::segment_manager   segment_manager;
     typedef typename Traits::generic_allocator generic_allocator;
 
@@ -59,9 +68,7 @@ struct traceinfo : private noncopyable {
 
     traceinfo(uintptr_t address, size_t memsize, const system_clock_t::time_point &timestamp,
             const callstack_container &a_callstack, const generic_allocator &allocator_instance)
-        : address(address)
-        , memsize(memsize)
-        , timestamp(timestamp)
+        : traceinfo_base(address, memsize, timestamp)
         , callstack(allocator_instance)
     {
         callstack.reserve(a_callstack.size());
@@ -69,9 +76,7 @@ struct traceinfo : private noncopyable {
             traceinfo_callstack_item_maker());
     }
 
-    uintptr_t                     address;
-    std::size_t                   memsize;
-    system_clock_t::time_point    timestamp;
+
     traceinfo_callstack_container callstack;
 };
 
@@ -85,18 +90,18 @@ struct mapped_container : interprocess::interprocess_mutex {
         traceinfo_type,
         multi_index::indexed_by<
             multi_index::hashed_unique<
-                multi_index::member<traceinfo_type,
-                    uintptr_t, &traceinfo_type::address
+                multi_index::member<traceinfo_base,
+                    uintptr_t, &traceinfo_base::address
                 >
             >,
             multi_index::ordered_non_unique<
-                multi_index::member<traceinfo_type,
-                    system_clock_t::time_point, &traceinfo_type::timestamp
+                multi_index::member<traceinfo_base,
+                    system_clock_t::time_point, &traceinfo_base::timestamp
                 >
             >,
             multi_index::ordered_non_unique<
-                multi_index::member<traceinfo_type,
-                    std::size_t, &traceinfo_type::memsize
+                multi_index::member<traceinfo_base,
+                    std::size_t, &traceinfo_base::memsize
                 >
             >
         >,

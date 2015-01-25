@@ -4,59 +4,59 @@
 #include "basic_mapped_view.hpp"
 #include "basic_simple_mapped_view.hpp"
 #include "basic_aggregated_mapped_view.hpp"
-#include "basic_mapped_view_req.hpp"
+#include "mapped_view_req.hpp"
 
 
 namespace memhook {
 
 template <typename Traits>
 struct basic_mapped_view_kit : mapped_view_kit {
-    basic_mapped_view<Traits>     *make_view(const char *name);
-    basic_mapped_view<Traits>     *make_aggregated_view(const char *name);
-    basic_mapped_view_req<Traits> *make_min_size_req(std::size_t minsize);
-    basic_mapped_view_req<Traits> *make_min_time_req(const system_clock_t::time_point &min_time);
-    basic_mapped_view_req<Traits> *make_max_time_req(const system_clock_t::time_point &max_time);
-    basic_mapped_view_req<Traits> *make_min_time_from_now_req(const system_clock_t::duration &min_time);
-    basic_mapped_view_req<Traits> *make_max_time_from_now_req(const system_clock_t::duration &max_time);
+    mapped_view     *make_view(const char *name);
+    mapped_view     *make_aggregated_view(const char *name);
+    mapped_view_req *make_min_size(std::size_t minsize);
+    mapped_view_req *make_min_time(const system_clock_t::time_point &min_time);
+    mapped_view_req *make_max_time(const system_clock_t::time_point &max_time);
+    mapped_view_req *make_min_time_from_now(const system_clock_t::duration &min_time);
+    mapped_view_req *make_max_time_from_now(const system_clock_t::duration &max_time);
 };
 
 template <typename Traits>
-basic_mapped_view<Traits> *basic_mapped_view_kit<Traits>::make_view(const char *name) {
+mapped_view *basic_mapped_view_kit<Traits>::make_view(const char *name) {
     return new basic_simple_mapped_view<Traits>(name);
 }
 
 template <typename Traits>
-basic_mapped_view<Traits> *basic_mapped_view_kit<Traits>::make_aggregated_view(const char *name) {
+mapped_view *basic_mapped_view_kit<Traits>::make_aggregated_view(const char *name) {
     return new basic_aggregated_mapped_view<Traits>(name);
 }
 
 template <typename Traits>
-basic_mapped_view_req<Traits> *basic_mapped_view_kit<Traits>::make_min_size_req(std::size_t minsize) {
-    return new basic_min_size_mapped_view_req<Traits>(minsize);
+mapped_view_req *basic_mapped_view_kit<Traits>::make_min_size(std::size_t minsize) {
+    return new min_size_mapped_view_req(minsize);
 }
 
 template <typename Traits>
-basic_mapped_view_req<Traits> *basic_mapped_view_kit<Traits>::make_min_time_req(
+mapped_view_req *basic_mapped_view_kit<Traits>::make_min_time(
         const system_clock_t::time_point &min_time) {
-    return new basic_min_time_mapped_view_req<Traits>(min_time);
+    return new min_time_mapped_view_req(min_time);
 }
 
 template <typename Traits>
-basic_mapped_view_req<Traits> *basic_mapped_view_kit<Traits>::make_max_time_req(
+mapped_view_req *basic_mapped_view_kit<Traits>::make_max_time(
         const system_clock_t::time_point &max_time) {
-    return new basic_max_time_mapped_view_req<Traits>(max_time);
+    return new max_time_mapped_view_req(max_time);
 }
 
 template <typename Traits>
-basic_mapped_view_req<Traits> *basic_mapped_view_kit<Traits>::make_min_time_from_now_req(
+mapped_view_req *basic_mapped_view_kit<Traits>::make_min_time_from_now(
         const system_clock_t::duration &min_time) {
-    return new basic_min_time_from_now_mapped_view_req<Traits>(min_time);
+    return new min_time_from_now_mapped_view_req(min_time);
 }
 
 template <typename Traits>
-basic_mapped_view_req<Traits> *basic_mapped_view_kit<Traits>::make_max_time_from_now_req(
+mapped_view_req *basic_mapped_view_kit<Traits>::make_max_time_from_now(
         const system_clock_t::duration &max_time) {
-    return new basic_max_time_from_now_mapped_view_req<Traits>(max_time);
+    return new max_time_from_now_mapped_view_req(max_time);
 }
 
 } // memhook

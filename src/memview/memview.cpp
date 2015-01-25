@@ -128,7 +128,7 @@ int main(int argc, char const *argv[])
         }
 
         if (options_map.count("no-lock"))
-            view->set_option(mapped_view::no_lock, options_map["no-lock"].as<bool>());
+            view->no_lock(options_map["no-lock"].as<bool>());
 
         if (options_map.count("get-storage-info")) {
             std::cout << "size="   << view->get_size()
@@ -139,29 +139,29 @@ int main(int argc, char const *argv[])
         BOOST_FOREACH(const po::variables_map::value_type &op, options_map)
         {
             if (op.first == "sort-by-address")
-                view->set_option(mapped_view::sort_by_address);
+                view->sort_by_address(true);
             else if (op.first == "sort-by-size")
-                view->set_option(mapped_view::sort_by_size);
+                view->sort_by_size(true);
             else if (op.first == "sort-by-time")
-                view->set_option(mapped_view::sort_by_time);
+                view->sort_by_time(true);
 
             if (op.first == "show-callstack")
-                view->set_option(mapped_view::show_callstack, op.second.as<bool>());
+                view->show_callstack(op.second.as<bool>());
 
             if (op.first == "min-time-from-now")
-                view->add_req(get<1>(ctx)->make_min_time_from_now_req(duration_from_string(
+                view->add_req(get<1>(ctx)->make_min_time_from_now(duration_from_string(
                     op.second.as<std::string>())));
             if (op.first == "max-time-from-now")
-                view->add_req(get<1>(ctx)->make_max_time_from_now_req(duration_from_string(
+                view->add_req(get<1>(ctx)->make_max_time_from_now(duration_from_string(
                     op.second.as<std::string>())));
             if (op.first == "min-time")
-                view->add_req(get<1>(ctx)->make_min_time_req(time_point_from_string(
+                view->add_req(get<1>(ctx)->make_min_time(time_point_from_string(
                     op.second.as<std::string>())));
             if (op.first == "max-time")
-                view->add_req(get<1>(ctx)->make_max_time_req(time_point_from_string(
+                view->add_req(get<1>(ctx)->make_max_time(time_point_from_string(
                     op.second.as<std::string>())));
             if (op.first == "min-size")
-                view->add_req(get<1>(ctx)->make_min_size_req(
+                view->add_req(get<1>(ctx)->make_min_size(
                     op.second.as<std::size_t>()));
         }
         view->write(std::cout);
