@@ -15,12 +15,14 @@ add_library(memhook SHARED
     error_msg.cpp
     shared_memory_storage.cpp
     mapped_file_storage.cpp
+    network_storage.cpp
     callstack.cpp
     memhook.cpp)
 
 target_link_libraries(memhook LINK_PRIVATE
     ${CMAKE_THREAD_LIBS_INIT}
     ${LIBUNWIND_LIBRARIES}
+    ${Boost_LIBRARIES}
     pthread rt dl)
 
 set_target_properties(memhook

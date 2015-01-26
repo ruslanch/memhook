@@ -230,38 +230,49 @@ namespace memhook
     static mapped_storage *pctx = NULL;
     static ssize_t         pctx_use_count = 0;
 
-    void init_pctx() {
-        size_t ipc_size = (8ul << 30); // default 8 Gb
-        const char *ipc_size_env = getenv("MEMHOOK_SIZE_GB");
-        if (ipc_size_env) {
-            size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
-            if (new_ipc_size != 0)
-                ipc_size = (new_ipc_size << 30);
-        } else if ((ipc_size_env = getenv("MEMHOOK_SIZE_MB"))) {
-            size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
-            if (new_ipc_size != 0)
-                ipc_size = (new_ipc_size << 20);
-        } else if ((ipc_size_env = getenv("MEMHOOK_SIZE_KB"))) {
-            size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
-            if (new_ipc_size != 0)
-                ipc_size = (new_ipc_size << 10);
-        } else if ((ipc_size_env = getenv("MEMHOOK_SIZE"))) {
-            size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
-            if (new_ipc_size != 0)
-                ipc_size = new_ipc_size;
-        }
-
-        const char *ipc_name = getenv("MEMHOOK_FILE");
+    void init_pctx() try {
         movelib::unique_ptr<mapped_storage> ctx;
+        const char *ipc_name = getenv("MEMHOOK_NET_HOST");
         if (ipc_name) {
-            ctx.reset(make_mmf_storage(ipc_name, ipc_size));
+            int ipc_port = 20015;
+            const char *ipc_port_env = getenv("MEMHOOK_NET_PORT");
+            if (ipc_port_env)
+                ipc_port = strtoul(ipc_port_env, NULL, 10);
+            ctx.reset(make_net_storage(ipc_name, ipc_port));
         } else {
-            ipc_name = getenv("MEMHOOK_SHM_NAME");
-            if (!ipc_name)
-                ipc_name = MEMHOOK_SHARED_MEMORY;
-            ctx.reset(make_shm_storage(ipc_name, ipc_size));
+            size_t ipc_size = (8ul << 30); // default 8 Gb
+            const char *ipc_size_env = getenv("MEMHOOK_SIZE_GB");
+            if (ipc_size_env) {
+                size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
+                if (new_ipc_size != 0)
+                    ipc_size = (new_ipc_size << 30);
+            } else if ((ipc_size_env = getenv("MEMHOOK_SIZE_MB"))) {
+                size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
+                if (new_ipc_size != 0)
+                    ipc_size = (new_ipc_size << 20);
+            } else if ((ipc_size_env = getenv("MEMHOOK_SIZE_KB"))) {
+                size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
+                if (new_ipc_size != 0)
+                    ipc_size = (new_ipc_size << 10);
+            } else if ((ipc_size_env = getenv("MEMHOOK_SIZE"))) {
+                size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
+                if (new_ipc_size != 0)
+                    ipc_size = new_ipc_size;
+            }
+
+            ipc_name = getenv("MEMHOOK_FILE");
+            if (ipc_name) {
+                ctx.reset(make_mmf_storage(ipc_name, ipc_size));
+            } else {
+                ipc_name = getenv("MEMHOOK_SHM_NAME");
+                if (!ipc_name)
+                    ipc_name = MEMHOOK_SHARED_MEMORY;
+                ctx.reset(make_shm_storage(ipc_name, ipc_size));
+            }
         }
         pctx = ctx.release();
+    } catch (const std::exception &e) {
+        error_msg(e.what());
     }
 
     void fini_pctx() {
@@ -352,30 +363,30 @@ namespace memhook
         initall_done = true;
         initstage0();
         initstage1();
-
-        init_callstack();
-        init_pctx();
-        init_dlfcn_hook();
     }
 
     void finiall() BOOST_NOEXCEPT_OR_NOTHROW {
         if (BOOST_LIKELY(!initall_done))
             return;
-
-        fini_dlfcn_hook();
-        fini_pctx();
-        fini_callstack();
     }
 
     MEMHOOK_SYMBOL_INIT(101)
     void memhook_init() BOOST_NOEXCEPT_OR_NOTHROW {
         no_hook_this no_hook_this;
         initall();
+
+        init_callstack();
+        init_pctx();
+        init_dlfcn_hook();
     }
 
     MEMHOOK_SYMBOL_FINI(101)
     void memhook_fini() BOOST_NOEXCEPT_OR_NOTHROW {
         no_hook_this no_hook_this;
+        fini_dlfcn_hook();
+        fini_pctx();
+        fini_callstack();
+
         finiall();
     }
 

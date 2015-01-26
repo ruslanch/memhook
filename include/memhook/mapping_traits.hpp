@@ -3,6 +3,7 @@
 
 #include "common.hpp"
 #include "callstack.hpp"
+#include "traceinfo.hpp"
 #include <boost/interprocess/allocators/allocator.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/container/string.hpp>
@@ -12,10 +13,9 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/member.hpp>
+#include <boost/multi_index/mem_fun.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/functional/hash.hpp>
-#include <boost/range/algorithm.hpp>
-#include <boost/bind.hpp>
 #include <boost/cstdint.hpp>
 
 namespace memhook {
@@ -27,80 +27,55 @@ struct mapping_traits {
     typedef interprocess::allocator<void, segment_manager> generic_allocator;
 };
 
-struct traceinfo_callstack_item {
-    traceinfo_callstack_item(uintptr_t shl_addr, uintptr_t ip, uintptr_t sp, uintptr_t offp)
-        : shl_addr(shl_addr), ip(ip), sp(sp), offp(offp)
-    {}
-
-    uintptr_t shl_addr;
-    uintptr_t ip;
-    uintptr_t sp;
-    uintptr_t offp;
-};
-
-struct traceinfo_callstack_item_maker {
-    traceinfo_callstack_item operator()(const callstack_record &r) const {
-        return traceinfo_callstack_item(r.shl_addr, r.ip, r.sp, r.offp);
-    }
-};
-
-struct traceinfo_base {
-    traceinfo_base(uintptr_t address, size_t memsize, const system_clock_t::time_point &timestamp)
-            : address(address), memsize(memsize), timestamp(timestamp) {}
-
-    uintptr_t                  address;
-    std::size_t                memsize;
-    system_clock_t::time_point timestamp;
+template <typename Traits>
+struct mapped_traceinfo_types {
+    typedef basic_traceinfo<
+            interprocess::allocator<
+                traceinfo_callstack_item,
+                typename Traits::segment_manager
+            >
+        > base_type;
 };
 
 template <typename Traits>
-struct traceinfo : traceinfo_base, private noncopyable {
-    typedef typename Traits::segment_manager   segment_manager;
+struct mapped_traceinfo
+        : basic_traceinfo<
+                interprocess::allocator<traceinfo_callstack_item, typename Traits::segment_manager>
+            > {
+    typedef basic_traceinfo<
+            interprocess::allocator<traceinfo_callstack_item, typename Traits::segment_manager>
+        > base_type;
     typedef typename Traits::generic_allocator generic_allocator;
 
-    typedef container::vector<
-            traceinfo_callstack_item,
-            interprocess::allocator<traceinfo_callstack_item, segment_manager>
-        > traceinfo_callstack_container;
+    explicit mapped_traceinfo(const generic_allocator &allocator_instance)
+        : base_type(allocator_instance) {}
 
-    explicit traceinfo(const generic_allocator &allocator_instance)
-        : callstack(allocator_instance) {}
-
-    traceinfo(uintptr_t address, size_t memsize, const system_clock_t::time_point &timestamp,
-            const callstack_container &a_callstack, const generic_allocator &allocator_instance)
-        : traceinfo_base(address, memsize, timestamp)
-        , callstack(allocator_instance)
-    {
-        callstack.reserve(a_callstack.size());
-        transform(a_callstack, std::back_inserter(callstack),
-            traceinfo_callstack_item_maker());
-    }
-
-
-    traceinfo_callstack_container callstack;
+    mapped_traceinfo(uintptr_t address, size_t memsize, const system_clock_t::time_point &timestamp,
+            const callstack_container &callstack, const generic_allocator &allocator_instance)
+        : base_type(address, memsize, timestamp, callstack, allocator_instance) {}
 };
 
 template <typename Traits, typename CharT = char>
 struct mapped_container : interprocess::interprocess_mutex {
     typedef typename Traits::segment_manager   segment_manager;
     typedef typename Traits::generic_allocator generic_allocator;
-    typedef traceinfo<Traits>                  traceinfo_type;
+    typedef mapped_traceinfo<Traits>           traceinfo_type;
 
     typedef multi_index_container<
         traceinfo_type,
         multi_index::indexed_by<
             multi_index::hashed_unique<
-                multi_index::member<traceinfo_base,
+                multi_index::const_mem_fun<traceinfo_base,
                     uintptr_t, &traceinfo_base::address
                 >
             >,
             multi_index::ordered_non_unique<
-                multi_index::member<traceinfo_base,
+                multi_index::const_mem_fun<traceinfo_base,
                     system_clock_t::time_point, &traceinfo_base::timestamp
                 >
             >,
             multi_index::ordered_non_unique<
-                multi_index::member<traceinfo_base,
+                multi_index::const_mem_fun<traceinfo_base,
                     std::size_t, &traceinfo_base::memsize
                 >
             >
@@ -115,18 +90,13 @@ struct mapped_container : interprocess::interprocess_mutex {
             interprocess::allocator<CharT, segment_manager>
         > string_type;
 
-    typedef uintptr_t   symbol_table_key_type;
-    typedef string_type symbol_table_mapping_type;
-    typedef std::pair<
-            const symbol_table_key_type,
-            symbol_table_mapping_type
-        > symbol_table_value_type;
+    typedef std::pair<const uintptr_t, string_type> symbol_table_value_type;
 
     typedef unordered_map<
-            symbol_table_key_type,
-            symbol_table_mapping_type,
-            hash<symbol_table_key_type>,
-            std::equal_to<symbol_table_key_type>,
+            uintptr_t,
+            string_type,
+            hash<uintptr_t>,
+            std::equal_to<uintptr_t>,
             interprocess::allocator<symbol_table_value_type, segment_manager>
         > symbol_table_t;
     symbol_table_t symtab;

@@ -16,7 +16,8 @@ struct mapped_storage : private noncopyable {
 };
 
 mapped_storage *make_shm_storage(const char *name, std::size_t size);
-mapped_storage *make_mmf_storage(const char *name, std::size_t size);
+mapped_storage *make_mmf_storage(const char *path, std::size_t size);
+mapped_storage *make_net_storage(const char *host, int port);
 
 } // memhook
 

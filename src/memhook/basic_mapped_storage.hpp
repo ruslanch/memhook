@@ -6,16 +6,9 @@
 #include <memhook/scoped_signal.hpp>
 #include "mapped_storage.hpp"
 #include <boost/algorithm/string.hpp>
+#include <boost/bind.hpp>
 
 namespace memhook {
-namespace {
-    chrono::system_clock::time_point system_clock_now() BOOST_NOEXCEPT {
-        timespec ts = {0};
-        clock_gettime(CLOCK_REALTIME, &ts);
-        return system_clock_t::time_point(system_clock_t::duration(
-            static_cast<system_clock_t::rep>(ts.tv_sec) * 1000000000 + ts.tv_nsec));
-    }
-} // namespace
 
 template <typename Traits>
 struct basic_mapped_storage : mapped_storage {
@@ -35,8 +28,7 @@ struct basic_mapped_storage : mapped_storage {
     typedef typename mapped_container_t::symbol_table_t         symbol_table_t;
     typedef typename mapped_container_t::string_type            string_type;
 
-    typedef traceinfo<Traits> traceinfo_t;
-    typedef typename traceinfo_t::traceinfo_callstack_container traceinfo_callstack_container_t;
+    typedef mapped_traceinfo<Traits> traceinfo_t;
 
     basic_mapped_storage(const char *name, std::size_t size)
         : cleaner(name)
@@ -76,14 +68,6 @@ private:
             return false;
         }
     };
-
-    struct field_memsize_setter {
-        std::size_t memsize;
-        explicit field_memsize_setter(std::size_t memsize) : memsize(memsize) {}
-        void operator()(traceinfo_t &tinfo) const {
-            tinfo.memsize = memsize;
-        }
-    };
 };
 
 template <typename Traits>
@@ -120,7 +104,7 @@ bool basic_mapped_storage<Traits>::update_size(uintptr_t address, std::size_t me
     const typename index0::iterator iter = idx.find(address);
     const bool ret = iter != idx.end();
     if (ret)
-        idx.modify(iter, field_memsize_setter(memsize));
+        idx.modify(iter, bind(&traceinfo_t::memsize, _1, memsize));
     return ret;
 }
 

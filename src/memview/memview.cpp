@@ -92,8 +92,6 @@ int main(int argc, char const *argv[])
 {
     std::ios::sync_with_stdio(false);
 
-    // using namespace boost_private;
-    // using namespace boost;
     using namespace memhook;
     using namespace memhook::detail;
 
