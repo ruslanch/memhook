@@ -1,4 +1,5 @@
 #include "error_msg.hpp"
+#include <string.h>
 
 namespace memhook {
 

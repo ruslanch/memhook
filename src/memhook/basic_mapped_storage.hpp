@@ -73,7 +73,7 @@ private:
 template <typename Traits>
 void basic_mapped_storage<Traits>::insert(uintptr_t address, std::size_t memsize,
         const callstack_container &callstack) {
-    system_clock_t::time_point time_point = system_clock_now();
+    system_clock::time_point time_point = system_clock_now();
     scoped_signal_block signal_block;
     interprocess::scoped_lock<interprocess::interprocess_mutex> lock(*container);
     if (find_if(callstack, symbol_table_updater(container, allocator_instance)) != callstack.end())

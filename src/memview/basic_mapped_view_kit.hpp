@@ -14,10 +14,10 @@ struct basic_mapped_view_kit : mapped_view_kit {
     mapped_view     *make_view(const char *name);
     mapped_view     *make_aggregated_view(const char *name);
     mapped_view_req *make_min_size(std::size_t minsize);
-    mapped_view_req *make_min_time(const system_clock_t::time_point &min_time);
-    mapped_view_req *make_max_time(const system_clock_t::time_point &max_time);
-    mapped_view_req *make_min_time_from_now(const system_clock_t::duration &min_time);
-    mapped_view_req *make_max_time_from_now(const system_clock_t::duration &max_time);
+    mapped_view_req *make_min_time(const system_clock::time_point &min_time);
+    mapped_view_req *make_max_time(const system_clock::time_point &max_time);
+    mapped_view_req *make_min_time_from_now(const system_clock::duration &min_time);
+    mapped_view_req *make_max_time_from_now(const system_clock::duration &max_time);
 };
 
 template <typename Traits>
@@ -37,25 +37,25 @@ mapped_view_req *basic_mapped_view_kit<Traits>::make_min_size(std::size_t minsiz
 
 template <typename Traits>
 mapped_view_req *basic_mapped_view_kit<Traits>::make_min_time(
-        const system_clock_t::time_point &min_time) {
+        const system_clock::time_point &min_time) {
     return new min_time_mapped_view_req(min_time);
 }
 
 template <typename Traits>
 mapped_view_req *basic_mapped_view_kit<Traits>::make_max_time(
-        const system_clock_t::time_point &max_time) {
+        const system_clock::time_point &max_time) {
     return new max_time_mapped_view_req(max_time);
 }
 
 template <typename Traits>
 mapped_view_req *basic_mapped_view_kit<Traits>::make_min_time_from_now(
-        const system_clock_t::duration &min_time) {
+        const system_clock::duration &min_time) {
     return new min_time_from_now_mapped_view_req(min_time);
 }
 
 template <typename Traits>
 mapped_view_req *basic_mapped_view_kit<Traits>::make_max_time_from_now(
-        const system_clock_t::duration &max_time) {
+        const system_clock::duration &max_time) {
     return new max_time_from_now_mapped_view_req(max_time);
 }
 

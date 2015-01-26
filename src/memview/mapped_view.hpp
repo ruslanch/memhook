@@ -35,10 +35,10 @@ public:
     virtual mapped_view     *make_view(const char *name) = 0;
     virtual mapped_view     *make_aggregated_view(const char *name) = 0;
     virtual mapped_view_req *make_min_size(std::size_t minsize) = 0;
-    virtual mapped_view_req *make_min_time(const system_clock_t::time_point &min_time) = 0;
-    virtual mapped_view_req *make_max_time(const system_clock_t::time_point &max_time) = 0;
-    virtual mapped_view_req *make_min_time_from_now(const system_clock_t::duration &min_time) = 0;
-    virtual mapped_view_req *make_max_time_from_now(const system_clock_t::duration &max_time) = 0;
+    virtual mapped_view_req *make_min_time(const system_clock::time_point &min_time) = 0;
+    virtual mapped_view_req *make_max_time(const system_clock::time_point &max_time) = 0;
+    virtual mapped_view_req *make_min_time_from_now(const system_clock::duration &min_time) = 0;
+    virtual mapped_view_req *make_max_time_from_now(const system_clock::duration &max_time) = 0;
 };
 
 movelib::unique_ptr<mapped_view_kit> make_shm_view_kit();

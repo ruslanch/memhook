@@ -50,7 +50,7 @@ struct mapped_traceinfo
     explicit mapped_traceinfo(const generic_allocator &allocator_instance)
         : base_type(allocator_instance) {}
 
-    mapped_traceinfo(uintptr_t address, size_t memsize, const system_clock_t::time_point &timestamp,
+    mapped_traceinfo(uintptr_t address, size_t memsize, const system_clock::time_point &timestamp,
             const callstack_container &callstack, const generic_allocator &allocator_instance)
         : base_type(address, memsize, timestamp, callstack, allocator_instance) {}
 };
@@ -71,7 +71,7 @@ struct mapped_container : interprocess::interprocess_mutex {
             >,
             multi_index::ordered_non_unique<
                 multi_index::const_mem_fun<traceinfo_base,
-                    system_clock_t::time_point, &traceinfo_base::timestamp
+                    system_clock::time_point, &traceinfo_base::timestamp
                 >
             >,
             multi_index::ordered_non_unique<

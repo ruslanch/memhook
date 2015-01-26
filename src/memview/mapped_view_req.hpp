@@ -23,29 +23,29 @@ public:
 };
 
 class min_time_mapped_view_req : public mapped_view_req {
-    system_clock_t::time_point min_time;
+    system_clock::time_point min_time;
 public:
-    min_time_mapped_view_req(const system_clock_t::time_point &min_time) : min_time(min_time) {}
+    min_time_mapped_view_req(const system_clock::time_point &min_time) : min_time(min_time) {}
     bool invoke(const traceinfo_base &tinfo) const {
         return tinfo.timestamp() >= min_time;
     }
 };
 
 class max_time_mapped_view_req : public mapped_view_req {
-    system_clock_t::time_point max_time;
+    system_clock::time_point max_time;
 public:
-    max_time_mapped_view_req(const system_clock_t::time_point &max_time) : max_time(max_time) {}
+    max_time_mapped_view_req(const system_clock::time_point &max_time) : max_time(max_time) {}
     bool invoke(const traceinfo_base &tinfo) const {
         return tinfo.timestamp() <= max_time;
     }
 };
 
 class min_time_from_now_mapped_view_req : public mapped_view_req {
-    system_clock_t::time_point current_time;
-    system_clock_t::duration   min_duration;
+    system_clock::time_point current_time;
+    system_clock::duration   min_duration;
 public:
-    min_time_from_now_mapped_view_req(const system_clock_t::duration &min_duration)
-            : current_time(system_clock_t::now())
+    min_time_from_now_mapped_view_req(const system_clock::duration &min_duration)
+            : current_time(system_clock::now())
             , min_duration(min_duration) {}
     bool invoke(const traceinfo_base &tinfo) const {
         return (current_time - tinfo.timestamp()) >= min_duration;
@@ -53,11 +53,11 @@ public:
 };
 
 class max_time_from_now_mapped_view_req : public mapped_view_req {
-    system_clock_t::time_point current_time;
-    system_clock_t::duration   max_duration;
+    system_clock::time_point current_time;
+    system_clock::duration   max_duration;
 public:
-    max_time_from_now_mapped_view_req(const system_clock_t::duration &max_duration)
-            : current_time(system_clock_t::now())
+    max_time_from_now_mapped_view_req(const system_clock::duration &max_duration)
+            : current_time(system_clock::now())
             , max_duration(max_duration) {}
     bool invoke(const traceinfo_base &tinfo) const {
         return (current_time - tinfo.timestamp()) <= max_duration;

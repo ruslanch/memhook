@@ -3,36 +3,40 @@
 
 #include "common.hpp"
 #include "traceinfo.hpp"
-#include <boost/optional.hpp>
+#include <boost/fusion/include/adapt_struct.hpp>
 
 namespace memhook {
 
-enum net_req_type {
+enum network_storage_req_type {
     net_req_unspecified = 0,
     net_req_insert,
     net_req_erase,
-    net_req_upd_size,
+    net_req_upd_size
 };
 
-struct net_req {
-    net_req()
+struct network_storage_req {
+    network_storage_req()
             : type(net_req_unspecified)
             , traceinfo() {}
 
-    net_req(net_req_type type, uintptr_t address, std::size_t memsize, const time_point_t &timestamp,
+    network_storage_req(network_storage_req_type type, uintptr_t address, std::size_t memsize,
+                const system_clock::time_point &timestamp,
                 const callstack_container &callstack)
-            : type(type)
+            : type(net_req_unspecified)
             , traceinfo(address, memsize, timestamp, callstack) {}
 
-    net_req_type type;
+    network_storage_req_type type;
     basic_traceinfo<> traceinfo;
 };
+
+std::ostream &operator<<(std::ostream &os, const network_storage_req &req);
+std::istream &operator>>(std::istream &is, network_storage_req &req);
 
 } // memhook
 
 BOOST_FUSION_ADAPT_STRUCT(
-    memhook::net_req,
-    (memhook::net_req_type, type)
+    memhook::network_storage_req,
+    (memhook::network_storage_req_type, type)
     (memhook::basic_traceinfo<>, traceinfo)
 );
 

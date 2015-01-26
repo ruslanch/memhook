@@ -1,9 +1,7 @@
 #include "network_storage.hpp"
 #include <boost/lexical_cast.hpp>
-#include <boost/fusion/include/for_each.hpp>
-#include <boost/fusion/include/is_sequence.hpp>
-#include <boost/type_traits/is_integral.hpp>
-#include <boost/utility/enable_if.hpp>
+
+#include "memhook/network.inc"
 
 namespace memhook {
 
@@ -21,8 +19,8 @@ network_storage::network_storage(const char *host, int port)
 
 void network_storage::insert(uintptr_t address, std::size_t memsize,
         const callstack_container &callstack) {
-    net_req req(net_req_insert, address, memsize, system_clock_now(), callstack);
-
+    network_storage_req req(net_req_insert, address, memsize, system_clock_now(), callstack);
+    iostream_ << req;
     iostream_.flush();
 }
 

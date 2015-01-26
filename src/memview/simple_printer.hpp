@@ -21,8 +21,8 @@ struct simple_traceinfo_printer {
             return false;
 
         if (view.check_traceinfo_reqs(tinfo)) {
-            const time_t ttsec = system_clock_t::to_time_t(tinfo.timestamp());
-            const int_least64_t nsec = (tinfo.timestamp() - system_clock_t::from_time_t(ttsec)).count();
+            const time_t ttsec = system_clock::to_time_t(tinfo.timestamp());
+            const int_least64_t nsec = (tinfo.timestamp() - system_clock::from_time_t(ttsec)).count();
             struct tm tm = {0};
             (void)localtime_r(&ttsec, &tm);
 

@@ -72,16 +72,16 @@ namespace memhook { namespace detail {
         return true;
     }
 
-    system_clock_t::time_point time_point_from_string(const std::string &string) {
+    system_clock::time_point time_point_from_string(const std::string &string) {
         std::istringstream sstream(string);
-        system_clock_t::time_point time_point;
+        system_clock::time_point time_point;
         sstream >> chrono::time_fmt(chrono::timezone::local, "%Y-%m-%d %H:%M:%S") >> time_point;
         return time_point;
     }
 
-    system_clock_t::duration duration_from_string(const std::string &string) {
+    system_clock::duration duration_from_string(const std::string &string) {
         std::istringstream sstream(string);
-        system_clock_t::duration duration;
+        system_clock::duration duration;
         sstream >> duration;
         return duration;
     }

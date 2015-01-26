@@ -20,14 +20,14 @@ namespace memhook
 {
 
 struct procname_info {
-    string_t   procname;
+    container::string procname;
     unw_word_t offp;
     unw_word_t shl_addr;
     procname_info() : procname(), offp(), shl_addr() {}
 };
 
 typedef unordered_map<unw_word_t, procname_info> procname_info_map_t;
-typedef unordered_map<unw_word_t, string_t> shl_path_map_t;
+typedef unordered_map<unw_word_t, container::string>  shl_path_map_t;
 
 struct callstack_internal {
     mutex               map_mutex;
@@ -55,7 +55,7 @@ void fini_callstack() {
 }
 
 static void get_callstack_procinfo(callstack_internal *ctx, unw_word_t ip, unw_cursor_t cursor,
-        string_t &shl_path, unw_word_t &shl_addr, string_t &procname, unw_word_t &offp) {
+        container::string &shl_path, unw_word_t &shl_addr, container::string &procname, unw_word_t &offp) {
     unique_lock<mutex> lock(ctx->map_mutex);
     procname_info_map_t::const_iterator iter = ctx->procname_info_map.find(ip);
     if (iter != ctx->procname_info_map.end()) {
@@ -115,7 +115,7 @@ void get_callstack(callstack_container &callstack) {
     if (unw_step(&cursor) <= 0) // skip first
         return;
 
-    string_t shl_path, procname;
+    container::string shl_path, procname;
     while (unw_step(&cursor) > 0) {
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         if (BOOST_UNLIKELY(ip == 0))
