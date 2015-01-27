@@ -12,24 +12,14 @@ namespace memhook {
 
 struct traceinfo_base {
     traceinfo_base()
-            : address_(), memsize_(), timestamp_() {}
+            : address(), memsize(), timestamp() {}
 
     traceinfo_base(uintptr_t address, size_t memsize, const system_clock::time_point &timestamp)
-            : address_(address), memsize_(memsize), timestamp_(timestamp) {}
+            : address(address), memsize(memsize), timestamp(timestamp) {}
 
-    uintptr_t address() const { return address_; }
-    void address(uintptr_t a_address) { address_ = a_address; }
-
-    std::size_t memsize() const { return memsize_; }
-    void memsize(std::size_t a_memsize) { memsize_ = a_memsize; }
-
-    system_clock::time_point timestamp() const { return timestamp_; }
-    void timestamp(const system_clock::time_point &a_timestamp) { timestamp_ = a_timestamp; }
-
-private:
-    uintptr_t address_;
-    std::size_t memsize_;
-    system_clock::time_point timestamp_;
+    uintptr_t   address;
+    std::size_t memsize;
+    system_clock::time_point timestamp;
 };
 
 struct traceinfo_callstack_item {
@@ -65,35 +55,26 @@ struct basic_traceinfo : traceinfo_base {
     typedef container::vector<traceinfo_callstack_item, allocator_type> callstack_type;
 
     basic_traceinfo(const allocator_type &allocator = allocator_type())
-            : callstack_(allocator) {}
+            : callstack(allocator) {}
 
     basic_traceinfo(uintptr_t address, size_t memsize, const system_clock::time_point &timestamp,
-                const callstack_container &callstack, const allocator_type &allocator = allocator_type())
+                const callstack_container &a_callstack, const allocator_type &allocator = allocator_type())
             : traceinfo_base(address, memsize, timestamp)
-            , callstack_(allocator) {
-        callstack_.reserve(callstack.size());
-        transform(callstack, std::back_inserter(callstack_), traceinfo_callstack_item_builder());
+            , callstack(allocator) {
+        callstack.reserve(a_callstack.size());
+        transform(a_callstack, std::back_inserter(callstack), traceinfo_callstack_item_builder());
     }
 
-    const callstack_type &callstack() const {
-        return callstack_;
-    }
-
-    void callstack(const callstack_type &a_callstack) {
-        callstack_ = a_callstack;
-    }
-
-private:
-    callstack_type callstack_;
+    callstack_type callstack;
 };
 
 } // memhook
 
-BOOST_FUSION_ADAPT_ADT(
+BOOST_FUSION_ADAPT_STRUCT(
     memhook::traceinfo_base,
-    (uintptr_t, uintptr_t, obj.address(), obj.address(val))
-    (std::size_t, std::size_t, obj.memsize(), obj.memsize(val))
-    (memhook::system_clock::time_point, memhook::system_clock::time_point, obj.timestamp(), obj.timestamp(val))
+    (uintptr_t,   address)
+    (std::size_t, memsize)
+    (memhook::system_clock::time_point, timestamp)
 );
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -104,15 +85,13 @@ BOOST_FUSION_ADAPT_STRUCT(
     (uintptr_t, offp)
 );
 
-BOOST_FUSION_ADAPT_TPL_ADT(
+BOOST_FUSION_ADAPT_TPL_STRUCT(
     (Allocator),
     (memhook::basic_traceinfo)(Allocator),
-    (uintptr_t, uintptr_t, obj.address(), obj.address(val))
-    (std::size_t, std::size_t, obj.memsize(), obj.memsize(val))
-    (memhook::system_clock::time_point, memhook::system_clock::time_point, obj.timestamp(), obj.timestamp(val))
-    (const typename memhook::basic_traceinfo<Allocator>::callstack_type &,
-     const typename memhook::basic_traceinfo<Allocator>::callstack_type &,
-     obj.callstack(), obj.callstack(val))
+    (uintptr_t,   address)
+    (std::size_t, memsize)
+    (memhook::system_clock::time_point, timestamp)
+    (typename memhook::basic_traceinfo<Allocator>::callstack_type, callstack)
 );
 
 #endif // MEMHOOK_TRACEINFO_HPP_INCLUDED

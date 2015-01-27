@@ -9,8 +9,7 @@ namespace memhook {
 
 struct mapped_storage : private noncopyable {
     virtual ~mapped_storage() {}
-    virtual void insert(uintptr_t address, std::size_t memsize,
-        const callstack_container &callstack) = 0;
+    virtual void insert(uintptr_t address, std::size_t memsize, callstack_container &callstack) = 0;
     virtual bool erase(uintptr_t address) = 0;
     virtual bool update_size(uintptr_t address, std::size_t memsize) = 0;
 };

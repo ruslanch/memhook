@@ -18,7 +18,7 @@ class min_size_mapped_view_req : public mapped_view_req {
 public:
     min_size_mapped_view_req(std::size_t min_size) : min_size(min_size) {}
     bool invoke(const traceinfo_base &tinfo) const {
-        return tinfo.memsize() >= min_size;
+        return tinfo.memsize >= min_size;
     }
 };
 
@@ -27,7 +27,7 @@ class min_time_mapped_view_req : public mapped_view_req {
 public:
     min_time_mapped_view_req(const system_clock::time_point &min_time) : min_time(min_time) {}
     bool invoke(const traceinfo_base &tinfo) const {
-        return tinfo.timestamp() >= min_time;
+        return tinfo.timestamp >= min_time;
     }
 };
 
@@ -36,7 +36,7 @@ class max_time_mapped_view_req : public mapped_view_req {
 public:
     max_time_mapped_view_req(const system_clock::time_point &max_time) : max_time(max_time) {}
     bool invoke(const traceinfo_base &tinfo) const {
-        return tinfo.timestamp() <= max_time;
+        return tinfo.timestamp <= max_time;
     }
 };
 
@@ -48,7 +48,7 @@ public:
             : current_time(system_clock::now())
             , min_duration(min_duration) {}
     bool invoke(const traceinfo_base &tinfo) const {
-        return (current_time - tinfo.timestamp()) >= min_duration;
+        return (current_time - tinfo.timestamp) >= min_duration;
     }
 };
 
@@ -60,7 +60,7 @@ public:
             : current_time(system_clock::now())
             , max_duration(max_duration) {}
     bool invoke(const traceinfo_base &tinfo) const {
-        return (current_time - tinfo.timestamp()) <= max_duration;
+        return (current_time - tinfo.timestamp) <= max_duration;
     }
 };
 

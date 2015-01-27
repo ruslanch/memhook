@@ -107,11 +107,11 @@ struct aggregated_indexed_container_builder {
         if (view.check_traceinfo_reqs(tinfo)) {
             typedef indexed_container_t::nth_index<0>::type index0;
             index0 &idx = get<0>(indexed_container);
-            index0::iterator iter = idx.find(tinfo.callstack());
+            index0::iterator iter = idx.find(tinfo.callstack);
             if (iter != idx.end()) {
-                idx.modify(iter, aggregated_traceinfo_fields_updater(tinfo.memsize()));
+                idx.modify(iter, aggregated_traceinfo_fields_updater(tinfo.memsize));
             } else {
-                indexed_container.emplace(tinfo.memsize(), 1, tinfo.callstack());
+                indexed_container.emplace(tinfo.memsize, 1, tinfo.callstack);
             }
         }
         return true;

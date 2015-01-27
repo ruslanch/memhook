@@ -11,12 +11,12 @@ namespace memhook {
 class network_storage : public mapped_storage {
 public:
     network_storage(const char *host, int port);
-    void insert(uintptr_t address, std::size_t memsize, const callstack_container &callstack);
+    void insert(uintptr_t address, std::size_t memsize, callstack_container &callstack);
     bool erase(uintptr_t address);
     bool update_size(uintptr_t address, std::size_t memsize);
 
 private:
-    asio::ip::tcp::iostream iostream_;
+    asio::ip::tcp::iostream ios_;
 };
 
 } // memhook

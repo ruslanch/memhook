@@ -21,8 +21,8 @@ struct simple_traceinfo_printer {
             return false;
 
         if (view.check_traceinfo_reqs(tinfo)) {
-            const time_t ttsec = system_clock::to_time_t(tinfo.timestamp());
-            const int_least64_t nsec = (tinfo.timestamp() - system_clock::from_time_t(ttsec)).count();
+            const time_t ttsec = system_clock::to_time_t(tinfo.timestamp);
+            const int_least64_t nsec = (tinfo.timestamp - system_clock::from_time_t(ttsec)).count();
             struct tm tm = {0};
             (void)localtime_r(&ttsec, &tm);
 
@@ -34,14 +34,14 @@ struct simple_traceinfo_printer {
                 << ' '
                 << right_align(2, '0')[int_] << ':' << right_align(2, '0')[int_] << ':' << right_align(2, '0')[int_]
                 << '.' << ulong_long << '\n'
-                , tinfo.address(), tinfo.memsize()
+                , tinfo.address, tinfo.memsize
                 , tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday
                 , tm.tm_hour, tm.tm_min, tm.tm_sec
                 , nsec
             );
 
             if (view.show_callstack())
-                for_each(tinfo.callstack(), *this);
+                for_each(tinfo.callstack, *this);
         }
         return true;
     }

@@ -13,7 +13,6 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/member.hpp>
-#include <boost/multi_index/mem_fun.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/cstdint.hpp>
@@ -65,17 +64,17 @@ struct mapped_container : interprocess::interprocess_mutex {
         traceinfo_type,
         multi_index::indexed_by<
             multi_index::hashed_unique<
-                multi_index::const_mem_fun<traceinfo_base,
+                multi_index::member<traceinfo_base,
                     uintptr_t, &traceinfo_base::address
                 >
             >,
             multi_index::ordered_non_unique<
-                multi_index::const_mem_fun<traceinfo_base,
+                multi_index::member<traceinfo_base,
                     system_clock::time_point, &traceinfo_base::timestamp
                 >
             >,
             multi_index::ordered_non_unique<
-                multi_index::const_mem_fun<traceinfo_base,
+                multi_index::member<traceinfo_base,
                     std::size_t, &traceinfo_base::memsize
                 >
             >

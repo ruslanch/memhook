@@ -6,7 +6,8 @@
 #include <memhook/scoped_signal.hpp>
 #include "mapped_storage.hpp"
 #include <boost/algorithm/string.hpp>
-#include <boost/bind.hpp>
+#include <boost/lambda/lambda.hpp>
+#include <boost/lambda/bind.hpp>
 
 namespace memhook {
 
@@ -38,7 +39,7 @@ struct basic_mapped_storage : mapped_storage {
             MEMHOOK_SHARED_CONTAINER)(allocator_instance))
     {}
 
-    void insert(uintptr_t address, std::size_t memsize, const callstack_container &callstack);
+    void insert(uintptr_t address, std::size_t memsize, callstack_container &callstack);
     bool erase(uintptr_t address);
     bool update_size(uintptr_t address, std::size_t memsize);
 
@@ -72,7 +73,7 @@ private:
 
 template <typename Traits>
 void basic_mapped_storage<Traits>::insert(uintptr_t address, std::size_t memsize,
-        const callstack_container &callstack) {
+        callstack_container &callstack) {
     system_clock::time_point time_point = system_clock_now();
     scoped_signal_block signal_block;
     interprocess::scoped_lock<interprocess::interprocess_mutex> lock(*container);
@@ -104,7 +105,7 @@ bool basic_mapped_storage<Traits>::update_size(uintptr_t address, std::size_t me
     const typename index0::iterator iter = idx.find(address);
     const bool ret = iter != idx.end();
     if (ret)
-        idx.modify(iter, bind(&traceinfo_t::memsize, _1, memsize));
+        idx.modify(iter, lambda::bind(&traceinfo_base::memsize, lambda::_1) = memsize);
     return ret;
 }
 
