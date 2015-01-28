@@ -1,7 +1,6 @@
 #include "network_storage.hpp"
+#include <memhook/network.ipp>
 #include <boost/lexical_cast.hpp>
-
-#include "memhook/network.inc"
 
 namespace memhook {
 
@@ -38,13 +37,16 @@ bool network_storage::update_size(uintptr_t address, std::size_t memsize) {
 }
 
 void network_storage::send(const net_req &req) {
-    std::stringstream sstream;
-    write(sstream.rdbuf(), req);
-    sstream.seekp(0, std::ios::end);
-    net_proto_outbound outbound(sstream.tellp());
-    mutex::scoped_lock lock(ios_mutex_);
-    write(ios_.rdbuf(), outbound);
-    ios_ << sstream.rdbuf();
+    const std::size_t size = size_of(req);
+    net_proto_outbound outbound(size);
+    const std::size_t prepare_size = size + size_of(outbound);
+    unique_lock<mutex> lock(ios_mutex_);
+    asio::mutable_buffer buf = asio::buffer(buf_.prepare(prepare_size));
+    asio::mutable_buffer tmpbuf = buf;
+    write(tmpbuf, outbound);
+    write(tmpbuf, req);
+    ios_.rdbuf()->sputn(asio::buffer_cast<const char *>(buf), prepare_size);
+    buf_.consume(prepare_size);
     ios_.flush();
 }
 

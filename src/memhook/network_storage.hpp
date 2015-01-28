@@ -6,6 +6,7 @@
 #include "mapped_storage.hpp"
 #include <boost/asio.hpp>
 #include <boost/thread/mutex.hpp>
+#include <vector>
 
 namespace memhook {
 
@@ -20,7 +21,8 @@ private:
     void send(const net_req &req);
 
     asio::ip::tcp::iostream ios_;
-    mutex ios_mutex_;
+    mutex                   ios_mutex_;
+    asio::streambuf         buf_;
 };
 
 } // memhook
