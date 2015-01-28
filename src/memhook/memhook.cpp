@@ -234,7 +234,7 @@ namespace memhook
         movelib::unique_ptr<mapped_storage> ctx;
         const char *ipc_name = getenv("MEMHOOK_NET_HOST");
         if (ipc_name) {
-            int ipc_port = 20015;
+            int ipc_port = MEMHOOK_NETWORK_STORAGE_PORT;
             const char *ipc_port_env = getenv("MEMHOOK_NET_PORT");
             if (ipc_port_env)
                 ipc_port = strtoul(ipc_port_env, NULL, 10);

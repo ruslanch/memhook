@@ -15,7 +15,7 @@ namespace memhook { namespace detail {
     namespace po = program_options;
 
     void usage(const po::options_description &options) {
-        std::cout << "Usage: memtraceview [options] [-m | -f path]\n";
+        std::cout << "Usage: memview [options] [-m | -f path]\n";
         std::cout << options << std::endl;
     }
 
@@ -46,7 +46,7 @@ namespace memhook { namespace detail {
 
         try {
             po::positional_options_description positional_options;
-            positional_options.add("path", -1);
+            positional_options.add("mapped-file", -1);
             program_options::store(program_options::command_line_parser(argc, argv)
                 .options(options)
                 .positional(positional_options)
@@ -65,7 +65,7 @@ namespace memhook { namespace detail {
             }
         }
         catch (const po::error &e) {
-            std::cout << e.what() << std::endl;
+            std::cerr << e.what() << std::endl;
             return false;
         }
 
@@ -166,12 +166,12 @@ int main(int argc, char const *argv[])
     }
     catch (const interprocess::interprocess_exception &e)
     {
-        std::cout << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
     catch (const std::exception &e)
     {
-        std::cout << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 

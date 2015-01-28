@@ -5,6 +5,7 @@
 #include <memhook/network.hpp>
 #include "mapped_storage.hpp"
 #include <boost/asio.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace memhook {
 
@@ -16,7 +17,10 @@ public:
     bool update_size(uintptr_t address, std::size_t memsize);
 
 private:
+    void send(const net_req &req);
+
     asio::ip::tcp::iostream ios_;
+    mutex ios_mutex_;
 };
 
 } // memhook

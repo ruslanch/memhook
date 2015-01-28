@@ -26,6 +26,16 @@ enum net_res_type {
 
 struct net_proto_tag {};
 
+struct net_proto_outbound : net_proto_tag {
+    net_proto_outbound()
+        : size(0) {}
+
+    explicit net_proto_outbound(std::size_t size)
+        : size(size) {}
+
+    std::size_t size;
+};
+
 struct net_req : net_proto_tag {
     net_req()
             : type(net_req_unknown)
@@ -65,6 +75,11 @@ struct net_response : net_proto_tag {
 };
 
 } // memhook
+
+BOOST_FUSION_ADAPT_STRUCT(
+    memhook::net_proto_outbound,
+    (std::size_t, size)
+);
 
 BOOST_FUSION_ADAPT_STRUCT(
     memhook::net_req,

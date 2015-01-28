@@ -20,3 +20,4 @@ add_definitions(-DMEMHOOK_BOOST_NAMESPACE=boost${MEMHOOK_BOOST_NAMESPACE_SUFFIX}
 
 add_subdirectory(memhook)
 add_subdirectory(memview)
+add_subdirectory(memdb)

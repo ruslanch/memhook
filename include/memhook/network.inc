@@ -37,12 +37,14 @@ struct network_ordering_conv<T, typename enable_if_c<sizeof(T) == sizeof(uint64_
 
 template <typename T> inline
 typename network_ordering_conv<T>::type hton(T val) {
-    return network_ordering_conv<T>::hton(static_cast<typename network_ordering_conv<T>::type>(val));
+    typename network_ordering_conv<T>::type v = network_ordering_conv<T>::hton(static_cast<typename network_ordering_conv<T>::type>(val));
+    return v;
 }
 
 template <typename T> inline
 typename network_ordering_conv<T>::type ntoh(T val) {
-    return network_ordering_conv<T>::ntoh(static_cast<typename network_ordering_conv<T>::type>(val));
+    typename network_ordering_conv<T>::type v = network_ordering_conv<T>::ntoh(static_cast<typename network_ordering_conv<T>::type>(val));
+    return v;
 }
 
 struct net_proto_writer {
@@ -132,7 +134,7 @@ struct net_proto_reader {
     operator()(T &val) const {
         typename network_ordering_conv<T>::type n = 0;
         (*this)(n);
-        val = static_cast<T>(ntoh(n));
+        val = static_cast<T>(n);
     }
 
     template <typename T, typename U, typename A>

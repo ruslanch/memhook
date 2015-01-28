@@ -20,24 +20,32 @@ network_storage::network_storage(const char *host, int port)
 void network_storage::insert(uintptr_t address, std::size_t memsize,
         callstack_container &callstack) {
     net_req req(net_req_insert, address, memsize, system_clock_now(), callstack);
-    write(ios_.rdbuf(), req);
-    ios_.flush();
+    send(req);
 }
 
 bool network_storage::erase(uintptr_t address) {
     callstack_container callstack;
     net_req req(net_req_erase, address, 0, system_clock_now(), callstack);
-    write(ios_.rdbuf(), req);
-    ios_.flush();
+    send(req);
     return true;
 }
 
 bool network_storage::update_size(uintptr_t address, std::size_t memsize) {
     callstack_container callstack;
     net_req req(net_req_upd_size, address, memsize, system_clock_now(), callstack);
-    write(ios_.rdbuf(), req);
-    ios_.flush();
+    send(req);
     return true;
+}
+
+void network_storage::send(const net_req &req) {
+    std::stringstream sstream;
+    write(sstream.rdbuf(), req);
+    sstream.seekp(0, std::ios::end);
+    net_proto_outbound outbound(sstream.tellp());
+    mutex::scoped_lock lock(ios_mutex_);
+    write(ios_.rdbuf(), outbound);
+    ios_ << sstream.rdbuf();
+    ios_.flush();
 }
 
 } // namespace
