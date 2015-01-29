@@ -2,9 +2,7 @@ set(LIBUNWIND_NO_SYSTEM_PATHS ON)
 set(LIBUNWIND_USE_STATIC_LIBS ON)
 find_package(libunwind REQUIRED)
 
-include_directories(
-    ${Boost_INCLUDE_DIRS}
-    ${LIBUNWIND_INCLUDE_DIR})
+include_directories(${LIBUNWIND_INCLUDE_DIR})
 
 add_definitions(
     -DMEMHOOK_TARGET_FILE_NAME="$<TARGET_LINKER_FILE_NAME:memhook>"
@@ -12,9 +10,9 @@ add_definitions(
 
 add_library(memhook SHARED
     error_code.cpp
+    chrono.cpp
     error_msg.cpp
-    shared_memory_storage.cpp
-    mapped_file_storage.cpp
+    mapped_storage.cpp
     network_storage.cpp
     callstack.cpp
     memhook.cpp)
@@ -22,7 +20,6 @@ add_library(memhook SHARED
 target_link_libraries(memhook LINK_PRIVATE
     ${CMAKE_THREAD_LIBS_INIT}
     ${LIBUNWIND_LIBRARIES}
-    ${Boost_LIBRARIES}
     pthread rt dl)
 
 set_target_properties(memhook

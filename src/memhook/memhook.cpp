@@ -1,7 +1,7 @@
 #include <memhook/common.hpp>
 #include <memhook/callstack.hpp>
+#include <memhook/mapped_storage.hpp>
 #include "scoped_use_count.hpp"
-#include "mapped_storage.hpp"
 #include "error_msg.hpp"
 #include <boost/move/unique_ptr.hpp>
 #include <boost/array.hpp>
@@ -54,7 +54,7 @@ namespace memhook
 
         static void* malloc(size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
             if (tmppos + size >= sizeof(tmpbuf))
-                exit(EXIT_FAILURE);
+                abort();
 
             void *p = tmpbuf + tmppos;
             tmppos += size;
@@ -135,6 +135,18 @@ namespace memhook
     typedef int (*dlfn_gethostbyname_r)(const char *, struct hostent *, char *, size_t, struct hostent **, int *);
     typedef int (*dlfn_gethostbyname2_r)(const char *, int, struct hostent *, char *, size_t, struct hostent **, int *);
 
+    // typedef char *(*dlfn_asctime)(const struct tm *tm);
+    // typedef char *(*dlfn_asctime_r)(const struct tm *tm, char *buf);
+    // typedef char *(*dlfn_ctime)(const time_t *timep);
+    // typedef char *(*dlfn_ctime_r)(const time_t *timep, char *buf);
+    // typedef struct tm *(*dlfn_gmtime)(const time_t *timep);
+    // typedef struct tm *(*dlfn_gmtime_r)(const time_t *timep, struct tm *result);
+    // typedef struct tm *(*dlfn_localtime)(const time_t *timep);
+    // typedef struct tm *(*dlfn_localtime_r)(const time_t *timep, struct tm *result);
+    // typedef time_t (*dlfn_mktime)(struct tm *tm);
+    // typedef time_t (*dlfn_timelocal)(struct tm *tm);
+    // typedef time_t (*dlfn_timegm)(struct tm *tm);
+
     static struct {
         dlfn_free             free;
         dlfn_malloc           malloc;
@@ -167,6 +179,18 @@ namespace memhook
         dlfn_gethostbyaddr_r  gethostbyaddr_r;
         dlfn_gethostbyname_r  gethostbyname_r;
         dlfn_gethostbyname2_r gethostbyname2_r;
+
+        // dlfn_asctime          asctime;
+        // dlfn_asctime_r        asctime_r;
+        // dlfn_ctime            ctime;
+        // dlfn_ctime_r          ctime_r;
+        // dlfn_gmtime           gmtime;
+        // dlfn_gmtime_r         gmtime_r;
+        // dlfn_localtime        localtime;
+        // dlfn_localtime_r      localtime_r;
+        // dlfn_mktime           mktime;
+        // dlfn_timelocal        timelocal;
+        // dlfn_timegm           timegm;
     } dl_function = {0};
 
     void do_initstage0() BOOST_NOEXCEPT_OR_NOTHROW {
@@ -208,6 +232,18 @@ namespace memhook
         dlsym_rtld_next(&dl_function.gethostbyaddr_r, "gethostbyaddr_r");
         dlsym_rtld_next(&dl_function.gethostbyname_r, "gethostbyname_r");
         dlsym_rtld_next(&dl_function.gethostbyname2_r,"gethostbyname2_r");
+
+        // dlsym_rtld_next(&dl_function.asctime,       "asctime");
+        // dlsym_rtld_next(&dl_function.asctime_r,     "asctime_r");
+        // dlsym_rtld_next(&dl_function.ctime,         "ctime");
+        // dlsym_rtld_next(&dl_function.ctime_r,       "ctime_r");
+        // dlsym_rtld_next(&dl_function.gmtime,        "gmtime");
+        // dlsym_rtld_next(&dl_function.gmtime_r,      "gmtime_r");
+        // dlsym_rtld_next(&dl_function.localtime,     "localtime");
+        // dlsym_rtld_next(&dl_function.localtime_r,   "localtime_r");
+        // dlsym_rtld_next(&dl_function.mktime,        "mktime");
+        // dlsym_rtld_next(&dl_function.timelocal,     "timelocal");
+        // dlsym_rtld_next(&dl_function.timegm,        "timegm");
     }
 
     BOOST_FORCEINLINE
@@ -227,18 +263,19 @@ namespace memhook
         }
     }
 
+    extern mapped_storage *make_network_storage(const char *host, int port);
+
     static mapped_storage *pctx = NULL;
     static ssize_t         pctx_use_count = 0;
 
     void init_pctx() try {
-        movelib::unique_ptr<mapped_storage> ctx;
         const char *ipc_name = getenv("MEMHOOK_NET_HOST");
         if (ipc_name) {
             int ipc_port = MEMHOOK_NETWORK_STORAGE_PORT;
             const char *ipc_port_env = getenv("MEMHOOK_NET_PORT");
             if (ipc_port_env)
                 ipc_port = strtoul(ipc_port_env, NULL, 10);
-            ctx.reset(make_net_storage(ipc_name, ipc_port));
+            pctx = make_network_storage(ipc_name, ipc_port);
         } else {
             size_t ipc_size = (8ul << 30); // default 8 Gb
             const char *ipc_size_env = getenv("MEMHOOK_SIZE_GB");
@@ -262,15 +299,14 @@ namespace memhook
 
             ipc_name = getenv("MEMHOOK_FILE");
             if (ipc_name) {
-                ctx.reset(make_mmf_storage(ipc_name, ipc_size));
+                pctx = make_mapped_file_storage(ipc_name, ipc_size);
             } else {
                 ipc_name = getenv("MEMHOOK_SHM_NAME");
                 if (!ipc_name)
                     ipc_name = MEMHOOK_SHARED_MEMORY;
-                ctx.reset(make_shm_storage(ipc_name, ipc_size));
+                pctx = make_shared_memory_storage(ipc_name, ipc_size);
             }
         }
-        pctx = ctx.release();
     } catch (const std::exception &e) {
         error_msg(e.what());
     }
@@ -390,70 +426,57 @@ namespace memhook
         finiall();
     }
 
-    void wrap_free(void *mem) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
-        if (BOOST_LIKELY(mem != NULL)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                ctx->erase(reinterpret_cast<uintptr_t>(mem));
-            }
+    BOOST_FORCEINLINE
+    void catch_allocation(void *mem, std::size_t size) {
+        const scoped_use_count use_count(&pctx_use_count);
+        mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
+        if (BOOST_LIKELY(ctx != NULL)) {
+            callstack_container callstack;
+            get_callstack(callstack);
+            ctx->insert(reinterpret_cast<uintptr_t>(mem), size, callstack);
         }
+    }
+
+    BOOST_FORCEINLINE
+    void catch_deallocation(void *mem) {
+        const scoped_use_count use_count(&pctx_use_count);
+        mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
+        if (BOOST_LIKELY(ctx != NULL)) {
+            ctx->erase(reinterpret_cast<uintptr_t>(mem));
+        }
+    }
+
+    void wrap_free(void *mem) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
+        if (BOOST_LIKELY(mem != NULL))
+            catch_deallocation(mem);
         dl_function.free(mem);
     } MEMHOOK_CATCH_ALL
 
     void *wrap_malloc(size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.malloc(size);
-        if (BOOST_LIKELY(mem != NULL)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                callstack_container callstack;
-                get_callstack(callstack);
-                ctx->insert(reinterpret_cast<uintptr_t>(mem), size, callstack);
-            }
-        }
+        if (BOOST_LIKELY(mem != NULL))
+            catch_allocation(mem, size);
         return mem;
     } MEMHOOK_CATCH_ALL
 
     void *wrap_calloc(size_t nmemb, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.calloc(nmemb, size);
-        if (BOOST_LIKELY(mem != NULL)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                callstack_container callstack;
-                get_callstack(callstack);
-                ctx->insert(reinterpret_cast<uintptr_t>(mem), size, callstack);
-            }
-        }
+        if (BOOST_LIKELY(mem != NULL))
+            catch_allocation(mem, size);
         return mem;
     } MEMHOOK_CATCH_ALL
 
     void *wrap_memalign(size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         void *const mem = dl_function.memalign(alignment, size);
-        if (BOOST_LIKELY(mem != NULL)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                callstack_container callstack;
-                get_callstack(callstack);
-                ctx->insert(reinterpret_cast<uintptr_t>(mem), size, callstack);
-            }
-        }
+        if (BOOST_LIKELY(mem != NULL))
+            catch_allocation(mem, size);
         return mem;
     } MEMHOOK_CATCH_ALL
 
     int wrap_posix_memalign(void **memptr, size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
         const int ret = dl_function.posix_memalign(memptr, alignment, size);
-        if (BOOST_LIKELY(ret == 0 && *memptr != NULL)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                callstack_container callstack;
-                get_callstack(callstack);
-                ctx->insert(reinterpret_cast<uintptr_t>(*memptr), size, callstack);
-            }
-        }
+        if (BOOST_LIKELY(ret == 0 && *memptr != NULL))
+            catch_allocation(*memptr, size);
         return ret;
     } MEMHOOK_CATCH_ALL
 
@@ -483,15 +506,8 @@ namespace memhook
         void *const mem = dl_function.mmap(addr, size, prot, flags, fd, offset);
         // const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
         if (BOOST_LIKELY(mem && fd < 0 && (flags & MAP_PRIVATE)
-                /*addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags*/)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                callstack_container callstack;
-                get_callstack(callstack);
-                ctx->insert(reinterpret_cast<uintptr_t>(mem), size, callstack);
-            }
-        }
+                /*addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags*/))
+            catch_allocation(mem, size);
         return mem;
     } MEMHOOK_CATCH_ALL
 
@@ -500,26 +516,14 @@ namespace memhook
         void *const mem = dl_function.mmap64(addr, size, prot, flags, fd, offset);
         // const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
         if (BOOST_LIKELY(mem && fd < 0 && (flags & MAP_PRIVATE)
-                /*addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags*/)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                callstack_container callstack;
-                get_callstack(callstack);
-                ctx->insert(reinterpret_cast<uintptr_t>(mem), size, callstack);
-            }
-        }
+                /*addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags*/))
+            catch_allocation(mem, size);
         return mem;
     } MEMHOOK_CATCH_ALL
 
     int wrap_munmap(void *mem, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
-        if (BOOST_LIKELY(mem != NULL)) {
-            const scoped_use_count use_count(&pctx_use_count);
-            mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-            if (BOOST_LIKELY(ctx != NULL)) {
-                ctx->erase(reinterpret_cast<uintptr_t>(mem));
-            }
-        }
+        if (BOOST_LIKELY(mem != NULL))
+            catch_deallocation(mem);
         return dl_function.munmap(mem, size);
     } MEMHOOK_CATCH_ALL
 
@@ -815,6 +819,80 @@ int gethostbyname2_r (const char *name, int af, struct hostent *result_buf,
     initall();
     return dl_function.gethostbyname2_r(name, af, result_buf, buf, buflen, result, h_errnop);
 }
+
+// extern "C" MEMHOOK_API
+// char *asctime(const struct tm *tm) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.asctime(tm);
+// }
+
+// extern "C" MEMHOOK_API
+// char *asctime_r(const struct tm *tm, char *buf) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.asctime_r(tm, buf);
+// }
+
+// extern "C" MEMHOOK_API
+// char *ctime(const time_t *timep) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.ctime(timep);
+// }
+
+// extern "C" MEMHOOK_API
+// char *ctime_r(const time_t *timep, char *buf) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.ctime_r(timep, buf);
+// }
+
+// extern "C" MEMHOOK_API
+// struct tm *gmtime(const time_t *timep) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.gmtime(timep);
+// }
+
+// extern "C" MEMHOOK_API
+// struct tm *gmtime_r(const time_t *timep, struct tm *result) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.gmtime_r(timep, result);
+// }
+
+// extern "C" MEMHOOK_API
+// struct tm *localtime(const time_t *timep) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.localtime(timep);
+// }
+
+// extern "C" MEMHOOK_API
+// struct tm *localtime_r(const time_t *timep, struct tm *result) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.localtime_r(timep, result);
+// }
+
+// time_t mktime(struct tm *tm) BOOST_NOEXCEPT_OR_NOTHROW {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.mktime(tm);
+// }
+
+// time_t timelocal(struct tm *tm) {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.timelocal(tm);
+// }
+
+// time_t timegm(struct tm *tm) {
+//     no_hook_this no_hook_this;
+//     initall();
+//     return dl_function.timegm(tm);
+// }
 
 namespace memhook {
     struct wrapped_function_info {

@@ -55,7 +55,12 @@ struct basic_traceinfo : traceinfo_base {
     typedef container::vector<traceinfo_callstack_item, allocator_type> callstack_type;
 
     basic_traceinfo(const allocator_type &allocator = allocator_type())
-            : callstack(allocator) {}
+            : traceinfo_base()
+            , callstack(allocator) {}
+
+    basic_traceinfo(traceinfo_base &traceinfo, const allocator_type &allocator = allocator_type())
+            : traceinfo_base(traceinfo)
+            , callstack(allocator) {}
 
     basic_traceinfo(uintptr_t address, size_t memsize, const system_clock::time_point &timestamp,
                 const callstack_container &a_callstack, const allocator_type &allocator = allocator_type())

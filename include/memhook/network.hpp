@@ -36,13 +36,13 @@ struct net_proto_outbound : net_proto_tag {
     std::size_t size;
 };
 
-struct net_req : net_proto_tag {
-    net_req()
+struct net_request : net_proto_tag {
+    net_request()
             : type(net_req_unknown)
             , traceinfo()
             , callstack() {}
 
-    net_req(net_req_type type, uintptr_t address, std::size_t memsize,
+    net_request(net_req_type type, uintptr_t address, std::size_t memsize,
                 const system_clock::time_point &timestamp, callstack_container &a_callstack)
             : type(type)
             , traceinfo(address, memsize, timestamp)
@@ -82,7 +82,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 );
 
 BOOST_FUSION_ADAPT_STRUCT(
-    memhook::net_req,
+    memhook::net_request,
     (memhook::net_req_type,        type)
     (memhook::traceinfo_base,      traceinfo)
     (memhook::callstack_container, callstack)

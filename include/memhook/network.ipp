@@ -6,7 +6,9 @@
 #include <boost/array.hpp>
 #include <boost/type_index.hpp>
 
-#define _BSD_SOURCE
+#ifndef _BSD_SOURCE
+#   define _BSD_SOURCE
+#endif
 #include <endian.h>
 
 namespace memhook {
@@ -17,22 +19,22 @@ namespace network_detail {
     template <typename T>
     struct byte_ordering_conv<T, typename enable_if_c<sizeof(T) == sizeof(uint16_t)>::type> {
         typedef uint16_t type;
-        static type hton(type val) { return htobe16(val); }
-        static type ntoh(type val) { return be16toh(val); }
+        static type hton(type val) { return __bswap_16(val); }
+        static type ntoh(type val) { return __bswap_16(val); }
     };
 
     template <typename T>
     struct byte_ordering_conv<T, typename enable_if_c<sizeof(T) == sizeof(uint32_t)>::type> {
         typedef uint32_t type;
-        static type hton(type val) { return htobe32(val); }
-        static type ntoh(type val) { return be32toh(val); }
+        static type hton(type val) { return __bswap_32(val); }
+        static type ntoh(type val) { return __bswap_32(val); }
     };
 
     template <typename T>
     struct byte_ordering_conv<T, typename enable_if_c<sizeof(T) == sizeof(uint64_t)>::type> {
         typedef uint64_t type;
-        static type hton(type val) { return htobe64(val); }
-        static type ntoh(type val) { return be64toh(val); }
+        static type hton(type val) { return __bswap_64(val); }
+        static type ntoh(type val) { return __bswap_64(val); }
     };
 
     template <typename T> inline

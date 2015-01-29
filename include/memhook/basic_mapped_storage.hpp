@@ -1,9 +1,9 @@
 #ifndef MEMHOOK_BASIC_MAPPED_STORAGE_HPP_INCLUDED
 #define MEMHOOK_BASIC_MAPPED_STORAGE_HPP_INCLUDED
 
-#include <memhook/common.hpp>
-#include <memhook/mapping_traits.hpp>
-#include <memhook/scoped_signal.hpp>
+#include "common.hpp"
+#include "mapping_traits.hpp"
+#include "scoped_signal.hpp"
 #include "mapped_storage.hpp"
 #include <boost/algorithm/string.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -39,7 +39,11 @@ struct basic_mapped_storage : mapped_storage {
             MEMHOOK_SHARED_CONTAINER)(allocator_instance))
     {}
 
-    void insert(uintptr_t address, std::size_t memsize, callstack_container &callstack);
+    void insert(uintptr_t address, std::size_t memsize,
+        callstack_container &callstack);
+    void insert(uintptr_t address, std::size_t memsize,
+        const system_clock::time_point &timestamp,
+        callstack_container &callstack);
     bool erase(uintptr_t address);
     bool update_size(uintptr_t address, std::size_t memsize);
 
@@ -74,12 +78,19 @@ private:
 template <typename Traits>
 void basic_mapped_storage<Traits>::insert(uintptr_t address, std::size_t memsize,
         callstack_container &callstack) {
-    system_clock::time_point time_point = system_clock_now();
+    insert(address, memsize, system_clock::now(), callstack);
+}
+
+
+template <typename Traits>
+void basic_mapped_storage<Traits>::insert(uintptr_t address, std::size_t memsize,
+        const system_clock::time_point &timestamp,
+        callstack_container &callstack) {
     scoped_signal_block signal_block;
     interprocess::scoped_lock<interprocess::interprocess_mutex> lock(*container);
     if (find_if(callstack, symbol_table_updater(container, allocator_instance)) != callstack.end())
         return;
-     container->indexed_container.emplace(address, memsize, time_point, callstack,
+     container->indexed_container.emplace(address, memsize, timestamp, callstack,
         allocator_instance);
 }
 

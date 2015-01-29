@@ -1,10 +1,13 @@
 #include <memhook/common.hpp>
 #include <memhook/network.hpp>
+#include <memhook/mapped_file_storage.ipp>
+#include <memhook/shared_memory_storage.ipp>
 #include "memdb_server.hpp"
 #include <boost/program_options.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
 #include <boost/preprocessor/stringize.hpp>
+#include <boost/thread/thread.hpp>
 #include <iostream>
 #include <cstdlib>
 
@@ -24,11 +27,9 @@ namespace memhook { namespace detail {
                 "use shared memory")
             ("mapped-file,f",     po::value<std::string>(),
                 "use memory mapped file")
-            ("address,a",            po::value<std::string>()->default_value("127.0.0.1"),
-                "address")
-            ("service,s",            po::value<std::string>()->default_value(
-                    BOOST_PP_STRINGIZE(MEMHOOK_NETWORK_STORAGE_PORT)),
-                "service");
+            ("size,s", po::value<std::size_t>()->default_value(8ul << 30),   "size")
+            ("host,h", po::value<std::string>()->default_value("127.0.0.1"), "host")
+            ("port,p", po::value<int>()->default_value(MEMHOOK_NETWORK_STORAGE_PORT), "port");
 
         try {
             po::positional_options_description positional_options;
@@ -39,7 +40,13 @@ namespace memhook { namespace detail {
                 .run(), map);
             program_options::notify(map);
 
-            if (map.count("help") || !map.count("address") || !map.count("service")) {
+            if (map.count("shared-memory") && map.count("mapped-file")) {
+                std::cerr << "can't use `--shared-memory` and `--mapped-file` "
+                    "options simultaneously" << std::endl;
+                return false;
+            }
+
+            if (map.count("help") || !map.count("host") || !map.count("port")) {
                 usage(options);
                 return false;
             }
@@ -63,15 +70,39 @@ int main(int argc, char const *argv[])
         if (!parse_command_line_arguments(argc, argv, options_map))
             return EXIT_FAILURE;
 
+        shared_ptr<mapped_storage> ctx;
+        if (options_map.count("mapped-file"))
+        {
+            std::string file_path = options_map["mapped-file"].as<std::string>();
+            shared_ptr<mapped_storage> tmp(make_mapped_file_storage(file_path.c_str(),
+                options_map["size"].as<std::size_t>()));
+            ctx.swap(tmp);
+        }
+        else
+        {
+            std::string name;
+            if (options_map.count("shared-memory"))
+                name = options_map["shared-memory"].as<std::string>();
+            else
+                name = MEMHOOK_SHARED_MEMORY;
+            shared_ptr<mapped_storage> tmp(make_shared_memory_storage(name.c_str(),
+                options_map["size"].as<std::size_t>()));
+            ctx.swap(tmp);
+        }
+
         asio::io_service io_service;
         asio::signal_set signals(io_service, SIGINT, SIGTERM, SIGQUIT);
         signals.async_wait(bind(&asio::io_service::stop, &io_service));
 
-        memdb_server server(io_service,
-                options_map["address"].as<std::string>(),
-                options_map["service"].as<std::string>());
-        io_service.run();
+        memdb_server server(ctx, io_service,
+                options_map["host"].as<std::string>().c_str(),
+                options_map["port"].as<int>());
 
+        thread_group tg;
+        const unsigned hardware_concurrency = thread::hardware_concurrency();
+        for (unsigned i = 0; i < hardware_concurrency; ++i)
+            tg.create_thread(bind(&asio::io_service::run, &io_service));
+        tg.join_all();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;

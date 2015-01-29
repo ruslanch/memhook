@@ -59,7 +59,7 @@ namespace memhook { namespace detail {
             }
 
             if (map.count("shared-memory") && map.count("mapped-file")) {
-                std::cout << "can't use `--shared-memory` and `--mapped-file` "
+                std::cerr << "can't use `--shared-memory` and `--mapped-file` "
                     "options simultaneously" << std::endl;
                 return false;
             }

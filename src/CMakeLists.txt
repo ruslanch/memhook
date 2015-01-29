@@ -13,10 +13,13 @@ find_package(Boost REQUIRED COMPONENTS
     ${MEMHOOK_BOOST_NAMESPACE_PREFIX}system
     ${MEMHOOK_BOOST_NAMESPACE_PREFIX}thread
     ${MEMHOOK_BOOST_NAMESPACE_PREFIX}chrono
-    ${MEMHOOK_BOOST_NAMESPACE_PREFIX}program_options
-)
+    ${MEMHOOK_BOOST_NAMESPACE_PREFIX}program_options)
+
 include_directories(${Boost_INCLUDE_DIRS})
-add_definitions(-DMEMHOOK_BOOST_NAMESPACE=boost${MEMHOOK_BOOST_NAMESPACE_SUFFIX})
+add_definitions(
+    -DMEMHOOK_BOOST_NAMESPACE=boost${MEMHOOK_BOOST_NAMESPACE_SUFFIX}
+    -DBOOST_ASIO_DISABLE_BOOST_DATE_TIME=1
+)
 
 add_subdirectory(memhook)
 add_subdirectory(memview)
