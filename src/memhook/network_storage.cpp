@@ -8,7 +8,7 @@ network_storage::network_storage(const char *host, int port)
         : iostream_()
         , sbuf_()
         , sbuf_mutex_() {
-    iostream_.expires_from_now(chrono::seconds(60));
+    // iostream_.expires_from_now(chrono::seconds(60));
     iostream_.connect(host, lexical_cast<std::string>(port));
     if (!iostream_)
         asio::detail::throw_error(iostream_.error());

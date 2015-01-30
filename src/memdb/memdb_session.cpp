@@ -82,6 +82,7 @@ bool memdb_session::do_handle(net_request &request) {
         case net_req_upd_size:
             do_upd_size(request.traceinfo);
             return true;
+        case net_req_unknown:
         case net_req_fetch:
         case net_req_fetch_end:
         case net_req_end:
