@@ -46,6 +46,7 @@ namespace memhook
     extern void init_callstack();
     extern void fini_callstack();
     extern void get_callstack(callstack_container &callstack);
+    extern void flush_callstack_cache();
 
     /* simple allocator used when the program starts */
     namespace staticbufalloc {
@@ -731,7 +732,9 @@ extern "C" MEMHOOK_API
 int dlclose(void *handle) BOOST_NOEXCEPT_OR_NOTHROW {
     no_hook_this no_hook_this;
     initall();
-    return dl_function.dlclose(handle);
+    int ret = dl_function.dlclose(handle);
+    flush_callstack_cache();
+    return ret;
 }
 
 extern "C" MEMHOOK_API

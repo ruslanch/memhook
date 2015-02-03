@@ -54,6 +54,10 @@ void fini_callstack() {
     }
 }
 
+void flush_callstack_cache() {
+    unw_flush_cache(unw_local_addr_space, 0, 0);
+}
+
 static void get_callstack_procinfo(callstack_internal *ctx, unw_word_t ip, unw_cursor_t cursor,
         container::string &shl_path, unw_word_t &shl_addr, container::string &procname, unw_word_t &offp) {
     unique_lock<mutex> lock(ctx->map_mutex);
@@ -109,19 +113,22 @@ void get_callstack(callstack_container &callstack) {
     callstack.reserve(16);
 
     unw_cursor_t cursor; unw_context_t uc;
-    unw_word_t ip, sp, offp, shl_addr;
     unw_getcontext(&uc);
     unw_init_local(&cursor, &uc);
     if (unw_step(&cursor) <= 0) // skip first
         return;
 
     container::string shl_path, procname;
+    unw_word_t ip = 0;
     while (unw_step(&cursor) > 0) {
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         if (BOOST_UNLIKELY(ip == 0))
             break;
 
+        unw_word_t sp = 0;
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
+
+        unw_word_t offp = 0, shl_addr = 0;
         get_callstack_procinfo(ctx, ip, cursor, shl_path, shl_addr, procname, offp);
         callstack.push_back(callstack_record());
         callstack.back().shl_path.swap(shl_path);
