@@ -98,7 +98,7 @@ namespace memhook
     __thread ssize_t hook_depth = 0;
 
     BOOST_FORCEINLINE
-    bool no_hook() { return hook_depth != 0; }
+    bool no_hook() BOOST_NOEXCEPT_OR_NOTHROW { return hook_depth != 0; }
 
     struct no_hook_this {
         no_hook_this()  BOOST_NOEXCEPT_OR_NOTHROW { ++hook_depth; }
@@ -124,6 +124,11 @@ namespace memhook
     typedef int   (*dlfn_dlclose)     (void *);
     typedef int   (*dlfn_iterate_phdr)(int (*)(struct dl_phdr_info *, size_t, void *), void *);
     typedef void *(*dlfn_dlsym)       (void *, const char *);
+
+    typedef int (*dlfn_pthread_create)(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+    typedef int (*dlfn_pthread_join)(pthread_t thread, void **retval);
+    typedef int (*dlfn_pthread_tryjoin_np)(pthread_t thread, void **retval);
+    typedef int (*dlfn_pthread_timedjoin_np)(pthread_t thread, void **retval, const struct timespec *abstime);
 
     typedef int (*dlfn_getaddrinfo)(const char *, const char *, const struct addrinfo *, struct addrinfo **);
     typedef int (*dlfn_getnameinfo)(const struct sockaddr *, socklen_t, char *, socklen_t, char *, socklen_t, int);
@@ -168,6 +173,11 @@ namespace memhook
         dlfn_dlclose          dlclose;
         dlfn_iterate_phdr     dl_iterate_phdr;
         dlfn_dlsym            dlsym;
+
+        dlfn_pthread_create         pthread_create;
+        dlfn_pthread_join           pthread_join;
+        dlfn_pthread_tryjoin_np     pthread_tryjoin_np;
+        dlfn_pthread_timedjoin_np   pthread_timedjoin_np;
 
         /* we override these functions because otherwise we get a deadlock on dlopen(libnss_db.so),
          * in case it is not catched by libmemhook */
@@ -216,8 +226,12 @@ namespace memhook
         dlsym_rtld_next(&dl_function.mmap,   "mmap");
         dlsym_rtld_next(&dl_function.mmap64, "mmap64");
         dlsym_rtld_next(&dl_function.munmap, "munmap");
-    }
 
+        dlsym_rtld_next(&dl_function.pthread_create,        "pthread_create");
+        dlsym_rtld_next(&dl_function.pthread_join,          "pthread_join");
+        dlsym_rtld_next(&dl_function.pthread_tryjoin_np,    "pthread_tryjoin_np");
+        dlsym_rtld_next(&dl_function.pthread_timedjoin_np,  "pthread_timedjoin_np");
+    }
 
     void do_initstage1() BOOST_NOEXCEPT_OR_NOTHROW {
         dlsym_rtld_next(&dl_function.dlopen,          "dlopen");
@@ -410,6 +424,8 @@ namespace memhook
             return;
 
         initall_done = true;
+
+        no_hook_this no_hook_this;
         initstage0();
         initstage1();
     }
@@ -437,6 +453,14 @@ namespace memhook
         fini_callstack();
 
         finiall();
+    }
+
+    int get_thread_stack(pthread_t thread, void **addr, size_t *size) {
+        pthread_attr_t attr;
+        int ret = pthread_getattr_np(thread, &attr);
+        if (ret == 0)
+            ret = pthread_attr_getstack(&attr, addr, size);
+        return ret;
     }
 
     BOOST_FORCEINLINE
@@ -517,9 +541,8 @@ namespace memhook
     void *wrap_mmap(void *addr, size_t size, int prot, int flags,
             int fd, off_t offset) BOOST_NOEXCEPT_OR_NOTHROW {
         void *const mem = dl_function.mmap(addr, size, prot, flags, fd, offset);
-        // const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-        if (BOOST_LIKELY(mem && fd < 0 && (flags & MAP_PRIVATE)
-                /*addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags*/))
+        const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+        if (BOOST_LIKELY(mem && fd < 0 && (flags & (allowed_flags | MAP_STACK)) == allowed_flags))
             catch_allocation(mem, size);
         return mem;
     }
@@ -527,9 +550,8 @@ namespace memhook
     void *wrap_mmap64(void *addr, size_t size, int prot, int flags,
             int fd, off64_t offset) BOOST_NOEXCEPT_OR_NOTHROW {
         void *const mem = dl_function.mmap64(addr, size, prot, flags, fd, offset);
-        // const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-        if (BOOST_LIKELY(mem && fd < 0 && (flags & MAP_PRIVATE)
-                /*addr == NULL && (flags & (allowed_flags | MAP_STACK)) == allowed_flags*/))
+        const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+        if (BOOST_LIKELY(mem && fd < 0 && (flags & (allowed_flags | MAP_STACK)) == allowed_flags))
             catch_allocation(mem, size);
         return mem;
     }
@@ -538,6 +560,54 @@ namespace memhook
         if (BOOST_LIKELY(mem != NULL))
             catch_deallocation(mem);
         return dl_function.munmap(mem, size);
+    }
+
+    int wrap_pthread_create_1(pthread_t *thread, const pthread_attr_t *attr,
+            void *(*start_routine) (void *), void *arg) {
+        const int ret = dl_function.pthread_create(thread, attr, start_routine, arg);
+        if (ret == 0) {
+            void  *stack_addr = NULL;
+            size_t stack_size = 0;
+            if (get_thread_stack(*thread, &stack_addr, &stack_size) == 0)
+                catch_allocation(stack_addr, stack_size);
+        }
+        return ret;
+    }
+
+    BOOST_NOINLINE
+    int wrap_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+            void *(*start_routine) (void *), void *arg) {
+        return wrap_pthread_create_1(thread, attr, start_routine, arg);
+    }
+
+    int wrap_pthread_join(pthread_t thread, void **retval) {
+        void  *stack_addr = NULL;
+        size_t stack_size = 0;
+        const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
+        const int tjoin_ret = dl_function.pthread_join(thread, retval);
+        if (stack_ret == 0 && tjoin_ret == 0)
+            catch_deallocation(stack_addr);
+        return tjoin_ret;
+    }
+
+    int wrap_pthread_tryjoin_np(pthread_t thread, void **retval) {
+        void  *stack_addr = NULL;
+        size_t stack_size = 0;
+        const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
+        const int tjoin_ret = dl_function.pthread_tryjoin_np(thread, retval);
+        if (stack_ret == 0 && tjoin_ret == 0)
+            catch_deallocation(stack_addr);
+        return tjoin_ret;
+    }
+
+    int wrap_pthread_timedjoin_np(pthread_t thread, void **retval, const struct timespec *abstime) {
+        void  *stack_addr = NULL;
+        size_t stack_size = 0;
+        const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
+        const int tjoin_ret = dl_function.pthread_timedjoin_np(thread, retval, abstime);
+        if (stack_ret == 0 && tjoin_ret == 0)
+            catch_deallocation(stack_addr);
+        return tjoin_ret;
     }
 
     void *wrap_dlopen(const char *file, int mode, void *dl_caller) BOOST_NOEXCEPT_OR_NOTHROW {
@@ -616,6 +686,7 @@ namespace memhook
         dlfcn_hook_switch hook_switch;
         return dlinfo(handle, request, arg/*, dl_caller*/);
     }
+
 } // memhook
 
 #pragma GCC push_options
@@ -625,113 +696,113 @@ using namespace memhook;
 
 extern "C" MEMHOOK_API
 void free(void *mem) BOOST_NOEXCEPT_OR_NOTHROW {
+    initall();
     if (no_hook() && dl_function.free)
         return dl_function.free(mem);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_free(mem);
 }
 
 extern "C" MEMHOOK_API
 void *malloc(size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
+    initall();
     if (no_hook() && dl_function.malloc)
         return dl_function.malloc(size);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_malloc(size);
 }
 
 
 extern "C" MEMHOOK_API
 void *calloc(size_t nmemb, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
+    initall();
     if (no_hook() && dl_function.calloc)
         return dl_function.calloc(nmemb, size);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_calloc(nmemb, size);
 }
 
 extern "C" MEMHOOK_API
 void *realloc(void *mem, size_t newsize) BOOST_NOEXCEPT_OR_NOTHROW {
+    initall();
     if (no_hook() && dl_function.realloc)
         return dl_function.realloc(mem, newsize);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_realloc(mem, newsize);
 }
 
 extern "C" MEMHOOK_API
 void *memalign(size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
+    initall();
     if (no_hook() && dl_function.memalign)
         return dl_function.memalign(alignment, size);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_memalign(alignment, size);
 }
 
 extern "C" MEMHOOK_API
 int posix_memalign(void **memptr, size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
+    initall();
     if (no_hook() && dl_function.posix_memalign)
         return dl_function.posix_memalign(memptr, alignment, size);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_posix_memalign(memptr, alignment, size);
 }
 
 extern "C" MEMHOOK_API
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
+    initall();
     if (no_hook() && dl_function.mmap)
         return dl_function.mmap(addr, length, prot, flags, fd, offset);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_mmap(addr, length, prot, flags, fd, offset);
 }
 
 extern "C" MEMHOOK_API
 void *mmap64(void *addr, size_t length, int prot, int flags, int fd, off64_t offset) {
+    initall();
     if (no_hook() && dl_function.mmap)
         return dl_function.mmap64(addr, length, prot, flags, fd, offset);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_mmap64(addr, length, prot, flags, fd, offset);
 }
 
 extern "C" MEMHOOK_API
 int munmap(void *addr, size_t length) {
+    initall();
     if (no_hook() && dl_function.munmap)
         return dl_function.munmap(addr, length);
 
     no_hook_this no_hook_this;
-    initall();
     return wrap_munmap(addr, length);
 }
 
 extern "C" MEMHOOK_API
 void *dlopen(const char *file, int mode) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.dlopen(file, mode);
 }
 
 extern "C" MEMHOOK_API
 void *dlmopen(Lmid_t nsid, const char *file, int mode) {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.dlmopen(nsid, file, mode);
 }
 
 extern "C" MEMHOOK_API
 int dlclose(void *handle) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     int ret = dl_function.dlclose(handle);
     flush_callstack_cache();
     return ret;
@@ -740,8 +811,8 @@ int dlclose(void *handle) BOOST_NOEXCEPT_OR_NOTHROW {
 extern "C" MEMHOOK_API
 int dl_iterate_phdr(int (*callback)(struct dl_phdr_info *info, size_t size, void *data),
         void *data) {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.dl_iterate_phdr(callback, data);
 }
 
@@ -770,10 +841,63 @@ void *dlsym(void *handle, const char *name) BOOST_NOEXCEPT_OR_NOTHROW {
 }
 
 extern "C" MEMHOOK_API
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *),
+        void *arg) {
+    initall();
+    if (no_hook() && dl_function.pthread_create)
+        return dl_function.pthread_create(thread, attr, start_routine, arg);
+
+    no_hook_this no_hook_this;
+    return wrap_pthread_create(thread, attr, start_routine, arg);
+
+
+    // size_t stack_size = 0;
+    // if (attr) {
+    //     pthread_attr_getstacksize(attr, &stack_size);
+    // } else {
+    //     pthread_attr_t newattr;
+    //     pthread_attr_init(&newattr);
+    //     pthread_attr_getstacksize(&newattr, &stack_size);
+    // }
+
+
+}
+
+extern "C" MEMHOOK_API
+int pthread_join(pthread_t thread, void **retval) {
+    initall();
+    if (no_hook() && dl_function.pthread_join)
+        return dl_function.pthread_join(thread, retval);
+
+    no_hook_this no_hook_this;
+    return wrap_pthread_join(thread, retval);
+}
+
+extern "C" MEMHOOK_API
+int pthread_tryjoin_np(pthread_t thread, void **retval) {
+    initall();
+    if (no_hook() && dl_function.pthread_tryjoin_np)
+        return dl_function.pthread_tryjoin_np(thread, retval);
+
+    no_hook_this no_hook_this;
+    return wrap_pthread_tryjoin_np(thread, retval);
+}
+
+extern "C" MEMHOOK_API
+int pthread_timedjoin_np(pthread_t thread, void **retval, const struct timespec *abstime) {
+    initall();
+    if (no_hook() && dl_function.pthread_timedjoin_np)
+        return dl_function.pthread_timedjoin_np(thread, retval, abstime);
+
+    no_hook_this no_hook_this;
+    return wrap_pthread_timedjoin_np(thread, retval, abstime);
+}
+
+extern "C" MEMHOOK_API
 int getaddrinfo(const char *node, const char *service,
         const struct addrinfo *hints, struct addrinfo **res) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.getaddrinfo(node, service, hints, res);
 }
 
@@ -781,61 +905,61 @@ extern "C" MEMHOOK_API
 int getnameinfo(const struct sockaddr *sa, socklen_t salen,
         char *host, socklen_t hostlen, char *serv, socklen_t servlen,
         int flags) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
 }
 
 extern "C" MEMHOOK_API
 struct hostent *gethostbyname(const char *name) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.gethostbyname(name);
 }
 
 extern "C" MEMHOOK_API
 struct hostent *gethostbyaddr(const void *addr, socklen_t len, int type) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.gethostbyaddr(addr, len, type);
 }
 
 extern "C" MEMHOOK_API
 struct hostent *gethostbyname2 (const char *name, int af) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.gethostbyname2(name, af);
 }
 
 extern "C" MEMHOOK_API
 int gethostent_r(struct hostent *result_buf, char *buf, size_t buflen, struct hostent **result,
         int *h_errnop) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.gethostent_r(result_buf, buf, buflen, result, h_errnop);
 }
 
 extern "C" MEMHOOK_API
 int gethostbyaddr_r(const void *addr, socklen_t len, int type, struct hostent *result_buf,
         char *buf, size_t buflen, struct hostent **result, int *h_errnop) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.gethostbyaddr_r(addr, len, type, result_buf, buf, buflen, result, h_errnop);
 }
 
 extern "C" MEMHOOK_API
 int gethostbyname_r(const char *name, struct hostent *result_buf, char *buf, size_t buflen,
         struct hostent **result, int *h_errnop) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.gethostbyname_r(name, result_buf, buf, buflen, result, h_errnop);
 }
 
 extern "C" MEMHOOK_API
 int gethostbyname2_r (const char *name, int af, struct hostent *result_buf,
         char *buf, size_t buflen, struct hostent **result, int *h_errnop) BOOST_NOEXCEPT_OR_NOTHROW {
-    no_hook_this no_hook_this;
     initall();
+    no_hook_this no_hook_this;
     return dl_function.gethostbyname2_r(name, af, result_buf, buf, buflen, result, h_errnop);
 }
 

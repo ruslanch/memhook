@@ -6,7 +6,7 @@
 #include <boost/config.hpp>
 
 #define MEMHOOK_CAS(val, cmp, newval) __sync_val_compare_and_swap(val, cmp, newval)
-#define MEMHOOK_NOTHROW        //__attribute__((nothrow))
+#define MEMHOOK_NOTHROW        __attribute__((nothrow))
 #define MEMHOOK_NO_INSTRUMENT  __attribute__((no_instrument_function))
 #define MEMHOOK_API            __attribute__((__visibility__("default"), nothrow))
 
