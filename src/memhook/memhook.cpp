@@ -332,25 +332,16 @@ namespace memhook
         }
     }
 
-    void *wrap_dlopen(const char *file, int mode, void *dl_caller)
-        BOOST_NOEXCEPT_OR_NOTHROW;
+    void *wrap_dlopen(const char *file, int mode, void *dl_caller) BOOST_NOEXCEPT_OR_NOTHROW;
     int   wrap_dlclose(void *handle) BOOST_NOEXCEPT_OR_NOTHROW;
-    void *wrap_dlsym(void *handle, const char *name, void *dl_caller)
-        BOOST_NOEXCEPT_OR_NOTHROW;
-    void *wrap_dlvsym(void *handle, const char *name, const char *version, void *dl_caller)
-        BOOST_NOEXCEPT_OR_NOTHROW;
-    char *wrap_dlerror(void)
-        BOOST_NOEXCEPT_OR_NOTHROW;
-    int   wrap_dladdr(const void *address, Dl_info *info)
-        BOOST_NOEXCEPT_OR_NOTHROW;
-    int   wrap_dladdr1(const void *address, Dl_info *info, void **extra_info, int flags)
-        BOOST_NOEXCEPT_OR_NOTHROW;
-    int   wrap_dlinfo(void *handle, int request, void *arg, void *dl_caller)
-        BOOST_NOEXCEPT_OR_NOTHROW;
-    void *wrap_dlmopen(Lmid_t nsid, const char *file, int mode, void *dl_caller)
-        BOOST_NOEXCEPT_OR_NOTHROW;
-    int dl_iterate_phdr_elfinjection(struct dl_phdr_info *info, size_t size, void *data)
-        BOOST_NOEXCEPT_OR_NOTHROW;
+    void *wrap_dlsym(void *handle, const char *name, void *dl_caller) BOOST_NOEXCEPT_OR_NOTHROW;
+    void *wrap_dlvsym(void *handle, const char *name, const char *version, void *dl_caller) BOOST_NOEXCEPT_OR_NOTHROW;
+    char *wrap_dlerror(void) BOOST_NOEXCEPT_OR_NOTHROW;
+    int   wrap_dladdr(const void *address, Dl_info *info) BOOST_NOEXCEPT_OR_NOTHROW;
+    int   wrap_dladdr1(const void *address, Dl_info *info, void **extra_info, int flags) BOOST_NOEXCEPT_OR_NOTHROW;
+    int   wrap_dlinfo(void *handle, int request, void *arg, void *dl_caller) BOOST_NOEXCEPT_OR_NOTHROW;
+    void *wrap_dlmopen(Lmid_t nsid, const char *file, int mode, void *dl_caller) BOOST_NOEXCEPT_OR_NOTHROW;
+    int dl_iterate_phdr_elfinjection(struct dl_phdr_info *info, size_t size, void *data) BOOST_NOEXCEPT_OR_NOTHROW;
 
     static dlfcn_hook *default_dlfcn_hook = {0};
     static dlfcn_hook  memhook_dlfcn_hook = {
@@ -483,86 +474,7 @@ namespace memhook
         }
     } MEMHOOK_CATCH_ALL
 
-    void wrap_free(void *mem) BOOST_NOEXCEPT_OR_NOTHROW {
-        if (BOOST_LIKELY(mem != NULL))
-            catch_deallocation(mem);
-        dl_function.free(mem);
-    }
-
-    void *wrap_malloc(size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
-        void *const mem = dl_function.malloc(size);
-        if (BOOST_LIKELY(mem != NULL))
-            catch_allocation(mem, size);
-        return mem;
-    }
-
-    void *wrap_calloc(size_t nmemb, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
-        void *const mem = dl_function.calloc(nmemb, size);
-        if (BOOST_LIKELY(mem != NULL))
-            catch_allocation(mem, size);
-        return mem;
-    }
-
-    void *wrap_memalign(size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
-        void *const mem = dl_function.memalign(alignment, size);
-        if (BOOST_LIKELY(mem != NULL))
-            catch_allocation(mem, size);
-        return mem;
-    }
-
-    int wrap_posix_memalign(void **memptr, size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
-        const int ret = dl_function.posix_memalign(memptr, alignment, size);
-        if (BOOST_LIKELY(ret == 0 && *memptr != NULL))
-            catch_allocation(*memptr, size);
-        return ret;
-    }
-
-    void *wrap_realloc(void *mem, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
-        void *const memnew = dl_function.realloc(mem, size);
-        const scoped_use_count use_count(&pctx_use_count);
-        mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
-        if (BOOST_LIKELY(ctx != NULL)) {
-            if (mem) {
-                if (!memnew || memnew != mem)
-                    ctx->erase(reinterpret_cast<uintptr_t>(mem));
-                else if (mem == memnew)
-                    ctx->update_size(reinterpret_cast<uintptr_t>(mem), size);
-            }
-
-            if ((!mem && memnew) || (memnew && mem != memnew)) {
-                callstack_container callstack;
-                get_callstack(callstack);
-                ctx->insert(reinterpret_cast<uintptr_t>(memnew), size, callstack);
-            }
-        }
-        return memnew;
-    } MEMHOOK_CATCH_ALL
-
-    void *wrap_mmap(void *addr, size_t size, int prot, int flags,
-            int fd, off_t offset) BOOST_NOEXCEPT_OR_NOTHROW {
-        void *const mem = dl_function.mmap(addr, size, prot, flags, fd, offset);
-        const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-        if (BOOST_LIKELY(mem && fd < 0 && (flags & (allowed_flags | MAP_STACK)) == allowed_flags))
-            catch_allocation(mem, size);
-        return mem;
-    }
-
-    void *wrap_mmap64(void *addr, size_t size, int prot, int flags,
-            int fd, off64_t offset) BOOST_NOEXCEPT_OR_NOTHROW {
-        void *const mem = dl_function.mmap64(addr, size, prot, flags, fd, offset);
-        const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-        if (BOOST_LIKELY(mem && fd < 0 && (flags & (allowed_flags | MAP_STACK)) == allowed_flags))
-            catch_allocation(mem, size);
-        return mem;
-    }
-
-    int wrap_munmap(void *mem, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
-        if (BOOST_LIKELY(mem != NULL))
-            catch_deallocation(mem);
-        return dl_function.munmap(mem, size);
-    }
-
-    int wrap_pthread_create_1(pthread_t *thread, const pthread_attr_t *attr,
+    int pthread_create_1(pthread_t *thread, const pthread_attr_t *attr,
             void *(*start_routine) (void *), void *arg) {
         const int ret = dl_function.pthread_create(thread, attr, start_routine, arg);
         if (ret == 0) {
@@ -572,42 +484,6 @@ namespace memhook
                 catch_allocation(stack_addr, stack_size);
         }
         return ret;
-    }
-
-    BOOST_NOINLINE
-    int wrap_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-            void *(*start_routine) (void *), void *arg) {
-        return wrap_pthread_create_1(thread, attr, start_routine, arg);
-    }
-
-    int wrap_pthread_join(pthread_t thread, void **retval) {
-        void  *stack_addr = NULL;
-        size_t stack_size = 0;
-        const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
-        const int tjoin_ret = dl_function.pthread_join(thread, retval);
-        if (stack_ret == 0 && tjoin_ret == 0)
-            catch_deallocation(stack_addr);
-        return tjoin_ret;
-    }
-
-    int wrap_pthread_tryjoin_np(pthread_t thread, void **retval) {
-        void  *stack_addr = NULL;
-        size_t stack_size = 0;
-        const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
-        const int tjoin_ret = dl_function.pthread_tryjoin_np(thread, retval);
-        if (stack_ret == 0 && tjoin_ret == 0)
-            catch_deallocation(stack_addr);
-        return tjoin_ret;
-    }
-
-    int wrap_pthread_timedjoin_np(pthread_t thread, void **retval, const struct timespec *abstime) {
-        void  *stack_addr = NULL;
-        size_t stack_size = 0;
-        const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
-        const int tjoin_ret = dl_function.pthread_timedjoin_np(thread, retval, abstime);
-        if (stack_ret == 0 && tjoin_ret == 0)
-            catch_deallocation(stack_addr);
-        return tjoin_ret;
     }
 
     void *wrap_dlopen(const char *file, int mode, void *dl_caller) BOOST_NOEXCEPT_OR_NOTHROW {
@@ -697,92 +573,134 @@ using namespace memhook;
 extern "C" MEMHOOK_API
 void free(void *mem) BOOST_NOEXCEPT_OR_NOTHROW {
     initall();
-    if (no_hook() && dl_function.free)
+    if (no_hook())
         return dl_function.free(mem);
 
     no_hook_this no_hook_this;
-    return wrap_free(mem);
+    if (BOOST_LIKELY(mem != NULL))
+        catch_deallocation(mem);
+    dl_function.free(mem);
 }
 
 extern "C" MEMHOOK_API
 void *malloc(size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
     initall();
-    if (no_hook() && dl_function.malloc)
+    if (no_hook())
         return dl_function.malloc(size);
 
     no_hook_this no_hook_this;
-    return wrap_malloc(size);
+    void *const mem = dl_function.malloc(size);
+    if (BOOST_LIKELY(mem != NULL))
+        catch_allocation(mem, size);
+    return mem;
 }
 
 
 extern "C" MEMHOOK_API
 void *calloc(size_t nmemb, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
     initall();
-    if (no_hook() && dl_function.calloc)
+    if (no_hook())
         return dl_function.calloc(nmemb, size);
 
     no_hook_this no_hook_this;
-    return wrap_calloc(nmemb, size);
+    void *const mem = dl_function.calloc(nmemb, size);
+    if (BOOST_LIKELY(mem != NULL))
+        catch_allocation(mem, size);
+    return mem;
 }
 
 extern "C" MEMHOOK_API
-void *realloc(void *mem, size_t newsize) BOOST_NOEXCEPT_OR_NOTHROW {
+void *realloc(void *mem, size_t size) BOOST_NOEXCEPT_OR_NOTHROW MEMHOOK_TRY {
     initall();
-    if (no_hook() && dl_function.realloc)
-        return dl_function.realloc(mem, newsize);
+    if (no_hook())
+        return dl_function.realloc(mem, size);
 
     no_hook_this no_hook_this;
-    return wrap_realloc(mem, newsize);
+    void *const memnew = dl_function.realloc(mem, size);
+    const scoped_use_count use_count(&pctx_use_count);
+    mapped_storage *const ctx = MEMHOOK_CAS(&pctx, NULL, NULL);
+    if (BOOST_LIKELY(ctx != NULL)) {
+        if (mem) {
+            if (!memnew || memnew != mem)
+                ctx->erase(reinterpret_cast<uintptr_t>(mem));
+            else if (mem == memnew)
+                ctx->update_size(reinterpret_cast<uintptr_t>(mem), size);
+        }
+
+        if ((!mem && memnew) || (memnew && mem != memnew)) {
+            callstack_container callstack;
+            get_callstack(callstack);
+            ctx->insert(reinterpret_cast<uintptr_t>(memnew), size, callstack);
+        }
+    }
+    return memnew;
 }
+MEMHOOK_CATCH_ALL
 
 extern "C" MEMHOOK_API
 void *memalign(size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
     initall();
-    if (no_hook() && dl_function.memalign)
+    if (no_hook())
         return dl_function.memalign(alignment, size);
 
     no_hook_this no_hook_this;
-    return wrap_memalign(alignment, size);
+    void *const mem = dl_function.memalign(alignment, size);
+    if (BOOST_LIKELY(mem != NULL))
+        catch_allocation(mem, size);
+    return mem;
 }
 
 extern "C" MEMHOOK_API
 int posix_memalign(void **memptr, size_t alignment, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
     initall();
-    if (no_hook() && dl_function.posix_memalign)
+    if (no_hook())
         return dl_function.posix_memalign(memptr, alignment, size);
 
     no_hook_this no_hook_this;
-    return wrap_posix_memalign(memptr, alignment, size);
+    const int ret = dl_function.posix_memalign(memptr, alignment, size);
+    if (BOOST_LIKELY(ret == 0 && *memptr != NULL))
+        catch_allocation(*memptr, size);
+    return ret;
 }
 
 extern "C" MEMHOOK_API
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
     initall();
-    if (no_hook() && dl_function.mmap)
+    if (no_hook())
         return dl_function.mmap(addr, length, prot, flags, fd, offset);
 
     no_hook_this no_hook_this;
-    return wrap_mmap(addr, length, prot, flags, fd, offset);
+    void *const mem = dl_function.mmap(addr, length, prot, flags, fd, offset);
+    const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+    if (BOOST_LIKELY(mem && fd < 0 && (flags & (allowed_flags | MAP_STACK)) == allowed_flags))
+        catch_allocation(mem, length);
+    return mem;
 }
 
 extern "C" MEMHOOK_API
 void *mmap64(void *addr, size_t length, int prot, int flags, int fd, off64_t offset) {
     initall();
-    if (no_hook() && dl_function.mmap)
+    if (no_hook())
         return dl_function.mmap64(addr, length, prot, flags, fd, offset);
 
     no_hook_this no_hook_this;
-    return wrap_mmap64(addr, length, prot, flags, fd, offset);
+    void *const mem = dl_function.mmap64(addr, length, prot, flags, fd, offset);
+    const int allowed_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+    if (BOOST_LIKELY(mem && fd < 0 && (flags & (allowed_flags | MAP_STACK)) == allowed_flags))
+        catch_allocation(mem, length);
+    return mem;
 }
 
 extern "C" MEMHOOK_API
 int munmap(void *addr, size_t length) {
     initall();
-    if (no_hook() && dl_function.munmap)
+    if (no_hook())
         return dl_function.munmap(addr, length);
 
     no_hook_this no_hook_this;
-    return wrap_munmap(addr, length);
+    if (BOOST_LIKELY(addr != NULL))
+        catch_deallocation(addr);
+    return dl_function.munmap(addr, length);
 }
 
 extern "C" MEMHOOK_API
@@ -844,53 +762,59 @@ extern "C" MEMHOOK_API
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *),
         void *arg) {
     initall();
-    if (no_hook() && dl_function.pthread_create)
+    if (no_hook())
         return dl_function.pthread_create(thread, attr, start_routine, arg);
 
     no_hook_this no_hook_this;
-    return wrap_pthread_create(thread, attr, start_routine, arg);
-
-
-    // size_t stack_size = 0;
-    // if (attr) {
-    //     pthread_attr_getstacksize(attr, &stack_size);
-    // } else {
-    //     pthread_attr_t newattr;
-    //     pthread_attr_init(&newattr);
-    //     pthread_attr_getstacksize(&newattr, &stack_size);
-    // }
-
-
+    return pthread_create_1(thread, attr, start_routine, arg);
 }
 
 extern "C" MEMHOOK_API
 int pthread_join(pthread_t thread, void **retval) {
     initall();
-    if (no_hook() && dl_function.pthread_join)
+    if (no_hook())
         return dl_function.pthread_join(thread, retval);
 
     no_hook_this no_hook_this;
-    return wrap_pthread_join(thread, retval);
+    void  *stack_addr = NULL;
+    size_t stack_size = 0;
+    const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
+    const int tjoin_ret = dl_function.pthread_join(thread, retval);
+    if (stack_ret == 0 && tjoin_ret == 0)
+    catch_deallocation(stack_addr);
+    return tjoin_ret;
 }
 
 extern "C" MEMHOOK_API
 int pthread_tryjoin_np(pthread_t thread, void **retval) {
     initall();
-    if (no_hook() && dl_function.pthread_tryjoin_np)
+    if (no_hook())
         return dl_function.pthread_tryjoin_np(thread, retval);
 
     no_hook_this no_hook_this;
-    return wrap_pthread_tryjoin_np(thread, retval);
+    void  *stack_addr = NULL;
+    size_t stack_size = 0;
+    const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
+    const int tjoin_ret = dl_function.pthread_tryjoin_np(thread, retval);
+    if (stack_ret == 0 && tjoin_ret == 0)
+        catch_deallocation(stack_addr);
+    return tjoin_ret;
 }
 
 extern "C" MEMHOOK_API
 int pthread_timedjoin_np(pthread_t thread, void **retval, const struct timespec *abstime) {
     initall();
-    if (no_hook() && dl_function.pthread_timedjoin_np)
+    if (no_hook())
         return dl_function.pthread_timedjoin_np(thread, retval, abstime);
 
     no_hook_this no_hook_this;
-    return wrap_pthread_timedjoin_np(thread, retval, abstime);
+    void  *stack_addr = NULL;
+    size_t stack_size = 0;
+    const int stack_ret = get_thread_stack(thread, &stack_addr, &stack_size);
+    const int tjoin_ret = dl_function.pthread_timedjoin_np(thread, retval, abstime);
+    if (stack_ret == 0 && tjoin_ret == 0)
+        catch_deallocation(stack_addr);
+    return tjoin_ret;
 }
 
 extern "C" MEMHOOK_API

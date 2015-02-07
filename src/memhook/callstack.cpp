@@ -115,8 +115,6 @@ void get_callstack(callstack_container &callstack) {
     unw_cursor_t cursor; unw_context_t uc;
     unw_getcontext(&uc);
     unw_init_local(&cursor, &uc);
-    if (unw_step(&cursor) <= 0) // skip first
-        return;
 
     container::string shl_path, procname;
     unw_word_t ip = 0;
