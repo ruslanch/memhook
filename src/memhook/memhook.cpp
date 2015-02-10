@@ -474,18 +474,6 @@ namespace memhook
         }
     } MEMHOOK_CATCH_ALL
 
-    int pthread_create_1(pthread_t *thread, const pthread_attr_t *attr,
-            void *(*start_routine) (void *), void *arg) {
-        const int ret = dl_function.pthread_create(thread, attr, start_routine, arg);
-        if (ret == 0) {
-            void  *stack_addr = NULL;
-            size_t stack_size = 0;
-            if (get_thread_stack(*thread, &stack_addr, &stack_size) == 0)
-                catch_allocation(stack_addr, stack_size);
-        }
-        return ret;
-    }
-
     void *wrap_dlopen(const char *file, int mode, void *dl_caller) BOOST_NOEXCEPT_OR_NOTHROW {
         void *h = NULL;
         {
@@ -766,7 +754,14 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
         return dl_function.pthread_create(thread, attr, start_routine, arg);
 
     no_hook_this no_hook_this;
-    return pthread_create_1(thread, attr, start_routine, arg);
+    const int ret = dl_function.pthread_create(thread, attr, start_routine, arg);
+    if (ret == 0) {
+        void  *stack_addr = NULL;
+        size_t stack_size = 0;
+        if (get_thread_stack(*thread, &stack_addr, &stack_size) == 0)
+            catch_allocation(stack_addr, stack_size);
+    }
+    return ret;
 }
 
 extern "C" MEMHOOK_API
