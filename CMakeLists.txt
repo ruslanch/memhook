@@ -52,20 +52,4 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/memhook/sysconfig.hpp.in
     ${CMAKE_CURRENT_BINARY_DIR}/sysconfig.hpp)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-# list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_BSD_SOURCE=1)
-# set(CMAKE_EXTRA_INCLUDE_FILES endian.h)
-# check_symbol_exists(__bswap_16 bits/byteswap.h HAVE_BSWAP16)
-# check_symbol_exists(__bswap_32 bits/byteswap.h HAVE_BSWAP32)
-# check_symbol_exists(__bswap_64 bits/byteswap.h HAVE_BSWAP64)
-
-# if(not HAVE_ENDIAN_H)
-#     message(FATAL_ERROR "ERROR: required endian.h file not found")
-# elseif (not HAVE_BSWAP16)
-#     message(FATAL_ERROR "ERROR: required __bswap16 symbol not found")
-# elseif (not HAVE_BSWAP32)
-#     message(FATAL_ERROR "ERROR: required __bswap32 symbol not found")
-# elseif (not HAVE_BSWAP64)
-#     message(FATAL_ERROR "ERROR: required __bswap64 symbol not found")
-# endif()
-
 add_subdirectory(src)
