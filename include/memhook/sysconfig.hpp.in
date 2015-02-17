@@ -2,9 +2,6 @@
 #define MEMHOOK_SYSCONFIG_HPP_INCLUDED
 
 #cmakedefine SYSTEM_BIG_ENDIAN 1
-#cmakedefine HAVE_MALLOC_H 1
-#cmakedefine HAVE_DLFCN_H 1
-#cmakedefine HAVE_LINK_H 1
 #cmakedefine HAVE_SYS_MMAN_H 1
 #cmakedefine HAVE_BUILTIN_BYTESWAP_16 1
 #cmakedefine HAVE_BUILTIN_BYTESWAP_32 1
