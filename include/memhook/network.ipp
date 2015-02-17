@@ -6,10 +6,7 @@
 #include <boost/array.hpp>
 #include <boost/type_index.hpp>
 
-#ifndef _BSD_SOURCE
-#   define _BSD_SOURCE
-#endif
-#include <endian.h>
+#include "byteswap.hpp"
 
 namespace memhook {
 namespace network_detail {
@@ -19,31 +16,37 @@ namespace network_detail {
     template <typename T>
     struct byte_ordering_conv<T, typename enable_if_c<sizeof(T) == sizeof(uint16_t)>::type> {
         typedef uint16_t type;
-        static type hton(type val) { return __bswap_16(val); }
-        static type ntoh(type val) { return __bswap_16(val); }
+        static BOOST_FORCEINLINE BOOST_CONSTEXPR type hton(type val) BOOST_NOEXCEPT_OR_NOTHROW
+            { return hton_16(val); }
+        static BOOST_FORCEINLINE BOOST_CONSTEXPR type ntoh(type val) BOOST_NOEXCEPT_OR_NOTHROW
+            { return ntoh_16(val); }
     };
 
     template <typename T>
     struct byte_ordering_conv<T, typename enable_if_c<sizeof(T) == sizeof(uint32_t)>::type> {
         typedef uint32_t type;
-        static type hton(type val) { return __bswap_32(val); }
-        static type ntoh(type val) { return __bswap_32(val); }
+        static BOOST_FORCEINLINE BOOST_CONSTEXPR type hton(type val) BOOST_NOEXCEPT_OR_NOTHROW
+            { return hton_32(val); }
+        static BOOST_FORCEINLINE BOOST_CONSTEXPR type ntoh(type val) BOOST_NOEXCEPT_OR_NOTHROW
+            { return ntoh_32(val); }
     };
 
     template <typename T>
     struct byte_ordering_conv<T, typename enable_if_c<sizeof(T) == sizeof(uint64_t)>::type> {
         typedef uint64_t type;
-        static type hton(type val) { return __bswap_64(val); }
-        static type ntoh(type val) { return __bswap_64(val); }
+        static BOOST_FORCEINLINE BOOST_CONSTEXPR type hton(type val) BOOST_NOEXCEPT_OR_NOTHROW
+            { return hton_64(val); }
+        static BOOST_FORCEINLINE BOOST_CONSTEXPR type ntoh(type val) BOOST_NOEXCEPT_OR_NOTHROW
+            { return ntoh_64(val); }
     };
 
-    template <typename T> inline
-    typename byte_ordering_conv<T>::type hton(T val) {
+    template <typename T> BOOST_FORCEINLINE BOOST_CONSTEXPR
+    typename byte_ordering_conv<T>::type hton(T val) BOOST_NOEXCEPT_OR_NOTHROW {
         return byte_ordering_conv<T>::hton(static_cast<typename byte_ordering_conv<T>::type>(val));
     }
 
-    template <typename T> inline
-    typename byte_ordering_conv<T>::type ntoh(T val) {
+    template <typename T> BOOST_FORCEINLINE BOOST_CONSTEXPR
+    typename byte_ordering_conv<T>::type ntoh(T val) BOOST_NOEXCEPT_OR_NOTHROW {
         return byte_ordering_conv<T>::ntoh(static_cast<typename byte_ordering_conv<T>::type>(val));
     }
 
@@ -55,49 +58,52 @@ namespace network_detail {
 
         template <typename T>
         typename enable_if<fusion::traits::is_sequence<T> >::type
-        operator()(const T &val) const {
+        operator()(const T &val) const BOOST_NOEXCEPT_OR_NOTHROW {
             fusion::for_each(val, *this);
         }
 
-        template <typename T>
+        template <typename T> BOOST_CONSTEXPR
         typename enable_if<is_integral<T> >::type
-        operator()(const T &) const {
+        operator()(const T &) const BOOST_NOEXCEPT_OR_NOTHROW {
             size_ += sizeof(T);
         }
 
-        template <typename T>
+        template <typename T> BOOST_CONSTEXPR
         typename enable_if<is_enum<T> >::type
-        operator()(const T &val) const {
+        operator()(const T &val) const BOOST_NOEXCEPT_OR_NOTHROW {
             (*this)(static_cast<typename byte_ordering_conv<T>::type>(val));
         }
 
         template <typename T, typename U, typename A>
-        void operator()(const container::basic_string<T, U, A> &val) const {
-            size_ += val.size() * sizeof(T);
-            (*this)(val.size());
+        void operator()(const container::basic_string<T, U, A> &val) const
+                BOOST_NOEXCEPT_OR_NOTHROW {
+            const typename container::basic_string<T, U, A>::size_type val_size = val.size();
+            size_ += val_size * sizeof(T);
+            (*this)(val_size);
         }
 
         template <typename T, typename A>
-        void operator()(const container::vector<T, A> &val) const {
-            (*this)(val.size());
+        void operator()(const container::vector<T, A> &val) const BOOST_NOEXCEPT_OR_NOTHROW {
+            (*this)(typename container::vector<T, A>::size_type(0));
             for_each(val, *this);
         }
 
         template <typename K, typename V, typename H, typename E, typename A>
-        void operator()(const unordered_map<K, V, H, E, A> &val) const {
-            (*this)(val.size());
+        void operator()(const unordered_map<K, V, H, E, A> &val) const BOOST_NOEXCEPT_OR_NOTHROW {
+            (*this)(typename unordered_map<K, V, H, E, A>::size_type(0));
             for_each(val, *this);
         }
 
         template <typename T, typename U>
-        void operator()(const std::pair<T, U> &val) const {
+        void operator()(const std::pair<T, U> &val) const BOOST_NOEXCEPT_OR_NOTHROW {
             (*this)(val.first);
             (*this)(val.second);
         }
 
         template <typename Clock, typename Duration>
-        void operator()(const chrono::time_point<Clock, Duration> &val) const {
-            (*this)(val.time_since_epoch().count());
+        void operator()(const chrono::time_point<Clock, Duration> &val) const
+                BOOST_NOEXCEPT_OR_NOTHROW {
+            (*this)(typename Duration::rep(0));
         }
     };
 
@@ -174,7 +180,9 @@ namespace network_detail {
         template <typename T>
         typename enable_if<is_integral<T> >::type
         operator()(T &val) const {
-            val = static_cast<T>(ntoh(*asio::buffer_cast<const typename byte_ordering_conv<T>::type *>(buf_)));
+            val = static_cast<T>(ntoh(*asio::buffer_cast<
+                    const typename byte_ordering_conv<T>::type *
+                >(buf_)));
             buf_ = buf_ + sizeof val;
         }
 
@@ -236,7 +244,7 @@ namespace network_detail {
 
 template <typename T> inline
 typename enable_if<is_base_of<net_proto_tag, T>, std::size_t>::type
-size_of(const T &val) {
+size_of(const T &val) BOOST_NOEXCEPT_OR_NOTHROW {
     std::size_t size = 0;
     network_detail::size_of_helper h(size);
     fusion::for_each(val, h);
