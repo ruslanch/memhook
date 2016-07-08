@@ -9,6 +9,8 @@ add_definitions(
     -fvisibility=hidden)
 
 add_library(memhook SHARED
+    static_buf_alloc.cpp
+    no_hook.cpp
     error_code.cpp
     chrono.cpp
     error_msg.cpp

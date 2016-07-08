@@ -1,12 +1,13 @@
-#include "staticbuf_alloc.hpp"
-#include <errno.h>
+#include "static_buf_alloc.hpp"
+#include <cerrno>
+#include <cstring>
 
 namespace memhook {
 
-char        StaticBufAlloc::tmpbuf_[1024];
-std::size_t StaticBufAlloc::tmppos_ = 0;
+char   StaticBufAlloc::tmpbuf_[1024];
+size_t StaticBufAlloc::tmppos_ = 0;
 
-static void* StaticBufAlloc::malloc(size_t size) {
+void* StaticBufAlloc::malloc(size_t size) {
     if (tmppos_ + size >= sizeof(tmpbuf_)) {
         errno = ENOMEM;
         return NULL;
@@ -17,7 +18,7 @@ static void* StaticBufAlloc::malloc(size_t size) {
     return ptr;
 }
 
-static void* StaticBufAlloc::calloc(size_t nmemb, size_t size) {
+void* StaticBufAlloc::calloc(size_t nmemb, size_t size) {
     const size_t total_size = nmemb * size;
     void *ptr = malloc(total_size);
     if (ptr == NULL)
@@ -26,7 +27,7 @@ static void* StaticBufAlloc::calloc(size_t nmemb, size_t size) {
     return ptr;
 }
 
-static void StaticBufAlloc::free(void *ptr) {
+void StaticBufAlloc::free(void *ptr) {
     // do nothing
 }
 

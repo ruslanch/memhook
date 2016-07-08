@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 gdb -ex "set env MEMHOOK_NET_HOST=127.0.0.1" \
