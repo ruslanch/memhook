@@ -27,7 +27,7 @@
 #endif
 
 namespace memhook {
-    using namespace MEMHOOK_BOOST_NAMESPACE;
+    using namespace boost;
 } // memhook
 
 #endif // MEMHOOK_CONFIG_HPP_INCLUDED

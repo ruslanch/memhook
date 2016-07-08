@@ -593,7 +593,7 @@ void *calloc(size_t nmemb, size_t size) BOOST_NOEXCEPT_OR_NOTHROW {
     no_hook_this no_hook_this;
     void *const mem = dl_function.calloc(nmemb, size);
     if (BOOST_LIKELY(mem != NULL))
-        catch_allocation(mem, size);
+        catch_allocation(mem, nmemb * size);
     return mem;
 }
 
