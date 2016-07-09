@@ -1,29 +1,21 @@
 #include "error_msg.hpp"
-#include <string.h>
+#include <cstring>
+#include <unistd.h>
 
 namespace memhook {
 
 /* functions to display messages about errors to stderr */
 /* yes, you can use fprintf(stderr, ...), but it is not safe when the program starts */
-static const char error_in_dlsym[] = "error in dlsym: ";
-
-void error_msg(const char *err_s) BOOST_NOEXCEPT_OR_NOTHROW {
-    const size_t err_s_size = strnlen(err_s, 128);
-    const size_t tmpbuf_size = err_s_size + 1;
-    char *tmpbuf = (char *)alloca(tmpbuf_size);
-    strncpy(tmpbuf, err_s, err_s_size);
-    tmpbuf[tmpbuf_size - 1] = '\n';
-    write(STDERR_FILENO, tmpbuf, tmpbuf_size);
-}
-
-void dlsym_error_msg(const char *err_s) {
-    const size_t err_s_size = strnlen(err_s, 128);
-    const size_t tmpbuf_size = sizeof(error_in_dlsym) + err_s_size;
-    char *tmpbuf = (char *)alloca(tmpbuf_size);
-    strncpy(tmpbuf, error_in_dlsym, sizeof(error_in_dlsym));
-    strncpy(tmpbuf + sizeof(error_in_dlsym) - 1, err_s, err_s_size);
-    tmpbuf[tmpbuf_size - 1] = '\n';
-    write(STDERR_FILENO, tmpbuf, tmpbuf_size);
+void error_msg(const char *title, const char *msg) {
+  const size_t title_len    = strnlen(title, 128);
+  const size_t msg_len      = strnlen(msg, 128);
+  const size_t tmp_buf_size = title_len + msg_len + 1;
+  char *tmp_buf = (char *)alloca(tmp_buf_size);
+  memcpy(tmp_buf, title, title_len);
+  memcpy(tmp_buf + title_len, msg, msg_len);
+  tmp_buf[tmp_buf_size - 1] = '\n';
+  const int ret = ::write(STDERR_FILENO, tmp_buf, tmp_buf_size);
+  (void)ret;
 }
 
 } // memhook

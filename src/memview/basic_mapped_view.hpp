@@ -44,7 +44,7 @@ private:
 
 template <typename Traits>
 basic_mapped_view<Traits>::basic_mapped_view(const char *name)
-    : segment(interprocess::open_only, name)
+    : segment(boost::interprocess::open_only, name)
     , container(segment.template find<mapped_container_t>(MEMHOOK_SHARED_CONTAINER).first)
 {}
 

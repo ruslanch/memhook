@@ -9,13 +9,13 @@
 
 namespace memhook {
 
-typedef movelib::unique_ptr<const char, void (*)(const char *)> unique_char_buf_t;
+typedef boost::movelib::unique_ptr<const char, void (*)(const char *)> unique_char_buf_t;
 void unique_char_buf_null_free(const char *) BOOST_NOEXCEPT_OR_NOTHROW;
 void unique_char_buf_full_free(const char *) BOOST_NOEXCEPT_OR_NOTHROW;
 unique_char_buf_t cxx_symbol_demangle(const char *source);
 
 class mapped_view_base : public mapped_view {
-    ptr_vector<mapped_view_req> reqs_;
+    boost::ptr_vector<mapped_view_req> reqs_;
     uint32_t options_;
 
     enum {

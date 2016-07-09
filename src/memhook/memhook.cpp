@@ -28,7 +28,7 @@ namespace memhook
             Sign *const fn = (Sign *)dlsym(RTLD_NEXT, name);
             const char *const err_s = dlerror();
             if (BOOST_UNLIKELY(err_s != NULL))
-                dlsym_error_msg(err_s);
+                error_msg("dlsym", err_s);
 
             if (BOOST_UNLIKELY(fn == NULL))
                 abort();
@@ -257,7 +257,7 @@ namespace memhook
     }
 
     void fini_pctx() {
-        movelib::unique_ptr<mapped_storage> ctx(MEMHOOK_CAS(&pctx, pctx, NULL));
+        boost::movelib::unique_ptr<mapped_storage> ctx(MEMHOOK_CAS(&pctx, pctx, NULL));
         if (ctx) {
             while (MEMHOOK_CAS(&pctx_use_count, 0, 0) != 0)
                 pthread_yield();
@@ -318,7 +318,7 @@ namespace memhook
     };
 
 #define MEMHOOK_CHECK_PTHREAD(call) \
-        if (BOOST_UNLIKELY(call != 0)) { error_msg(#call " failed"); abort(); }
+        if (BOOST_UNLIKELY(call != 0)) { error_msg(#call, " failed"); abort(); }
 
     void init_dlfcn_hook() {
         pthread_mutexattr_t dlfcn_hook_mutex_attr;
@@ -493,7 +493,7 @@ using namespace memhook;
 extern "C" MEMHOOK_API
 void free(void *mem) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.free(mem);
 
     NoHook no_hook;
@@ -505,7 +505,7 @@ void free(void *mem) {
 extern "C" MEMHOOK_API
 void *malloc(size_t size) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.malloc(size);
 
     NoHook no_hook;
@@ -519,7 +519,7 @@ void *malloc(size_t size) {
 extern "C" MEMHOOK_API
 void *calloc(size_t nmemb, size_t size) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.calloc(nmemb, size);
 
     NoHook no_hook;
@@ -532,7 +532,7 @@ void *calloc(size_t nmemb, size_t size) {
 extern "C" MEMHOOK_API
 void *realloc(void *mem, size_t size) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.realloc(mem, size);
 
     NoHook no_hook;
@@ -559,7 +559,7 @@ void *realloc(void *mem, size_t size) {
 extern "C" MEMHOOK_API
 void *memalign(size_t alignment, size_t size) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.memalign(alignment, size);
 
     NoHook no_hook;
@@ -572,7 +572,7 @@ void *memalign(size_t alignment, size_t size) {
 extern "C" MEMHOOK_API
 int posix_memalign(void **memptr, size_t alignment, size_t size) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.posix_memalign(memptr, alignment, size);
 
     NoHook no_hook;
@@ -585,7 +585,7 @@ int posix_memalign(void **memptr, size_t alignment, size_t size) {
 extern "C" MEMHOOK_API
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.mmap(addr, length, prot, flags, fd, offset);
 
     NoHook no_hook;
@@ -599,7 +599,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 extern "C" MEMHOOK_API
 void *mmap64(void *addr, size_t length, int prot, int flags, int fd, off64_t offset) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.mmap64(addr, length, prot, flags, fd, offset);
 
     NoHook no_hook;
@@ -613,7 +613,7 @@ void *mmap64(void *addr, size_t length, int prot, int flags, int fd, off64_t off
 extern "C" MEMHOOK_API
 int munmap(void *addr, size_t length) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.munmap(addr, length);
 
     NoHook no_hook;
@@ -666,7 +666,7 @@ void *dlsym(void *handle, const char *name) {
             MEMHOOK_RETURN_ADDRESS(0)); /* _dl_sym only for RTLD_NEXT */
         const char *const err_s = dlerror();
         if (BOOST_UNLIKELY(err_s != NULL))
-            dlsym_error_msg(err_s);
+            error_msg("dlsym", err_s);
 
         if (BOOST_UNLIKELY(dlsym_fn == NULL))
             return _dl_sym(handle, name,
@@ -681,7 +681,7 @@ extern "C" MEMHOOK_API
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *),
         void *arg) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.pthread_create(thread, attr, start_routine, arg);
 
     NoHook no_hook;
@@ -698,7 +698,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
 extern "C" MEMHOOK_API
 int pthread_join(pthread_t thread, void **retval) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.pthread_join(thread, retval);
 
     NoHook no_hook;
@@ -714,7 +714,7 @@ int pthread_join(pthread_t thread, void **retval) {
 extern "C" MEMHOOK_API
 int pthread_tryjoin_np(pthread_t thread, void **retval) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.pthread_tryjoin_np(thread, retval);
 
     NoHook no_hook;
@@ -730,7 +730,7 @@ int pthread_tryjoin_np(pthread_t thread, void **retval) {
 extern "C" MEMHOOK_API
 int pthread_timedjoin_np(pthread_t thread, void **retval, const struct timespec *abstime) {
     initall();
-    if (NoHook::IsNested())
+    if (NoHook::is_nested())
         return dl_function.pthread_timedjoin_np(thread, retval, abstime);
 
     NoHook no_hook;
@@ -907,7 +907,7 @@ namespace memhook {
         const intptr_t page_size = getpagesize();
 
 #define MAKE_WRAPPED_FUNCTION_INFO(function) {#function, reinterpret_cast<void *>(&function)}
-        static array<wrapped_function_info, 28> dl_wrapped_functions = {{
+        static boost::array<wrapped_function_info, 28> dl_wrapped_functions = {{
             MAKE_WRAPPED_FUNCTION_INFO(free),
             MAKE_WRAPPED_FUNCTION_INFO(malloc),
             MAKE_WRAPPED_FUNCTION_INFO(calloc),

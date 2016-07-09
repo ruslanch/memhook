@@ -7,7 +7,7 @@
 
 namespace memhook {
 
-class scoped_signal_block : private noncopyable {
+class scoped_signal_block : private boost::noncopyable {
     sigset_t old_mask_;
     bool     blocked_;
 public:
@@ -32,7 +32,7 @@ public:
     }
 };
 
-class scoped_signal : private noncopyable {
+class scoped_signal : private boost::noncopyable {
     struct sigaction old_sa_;
     int  signum_;
     bool handle_;

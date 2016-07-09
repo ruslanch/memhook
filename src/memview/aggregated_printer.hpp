@@ -14,7 +14,7 @@
 
 namespace memhook {
 
-typedef container::vector<traceinfo_callstack_item>
+typedef boost::container::vector<traceinfo_callstack_item>
     aggregated_callstack;
 
 struct aggregated_traceinfo {
@@ -24,7 +24,7 @@ struct aggregated_traceinfo {
 
     template <typename A>
     aggregated_traceinfo(std::size_t memsize, std::size_t times,
-                const container::vector<traceinfo_callstack_item, A> &a_callstack)
+                const boost::container::vector<traceinfo_callstack_item, A> &a_callstack)
             : memsize(memsize)
             , times(times)
             , callstack(a_callstack.begin(), a_callstack.end()) {}
@@ -32,17 +32,17 @@ struct aggregated_traceinfo {
 
 struct traceinfo_callstack_item_hash_by_ip_and_sp {
     std::size_t operator()(std::size_t seed, const traceinfo_callstack_item &item) const {
-        hash_combine(seed, item.ip);
-        hash_combine(seed, item.sp);
+        boost::hash_combine(seed, item.ip);
+        boost::hash_combine(seed, item.sp);
         return seed;
     }
 };
 
 struct callstack_container_hash_by_ip_and_sp {
     template <typename A>
-    std::size_t operator()(const container::vector<traceinfo_callstack_item, A> &callstack) const {
+    std::size_t operator()(const boost::container::vector<traceinfo_callstack_item, A> &callstack) const {
         std::size_t seed = 0;
-        return accumulate(callstack, seed, traceinfo_callstack_item_hash_by_ip_and_sp());
+        return boost::accumulate(callstack, seed, traceinfo_callstack_item_hash_by_ip_and_sp());
     }
 };
 
@@ -54,8 +54,8 @@ struct traceinfo_callstack_item_equal_by_ip_and_sp {
 
 struct callstack_container_equal_by_ip_and_sp {
     template <typename A1, typename A2>
-    bool operator()(const container::vector<traceinfo_callstack_item, A1> &lhs,
-                    const container::vector<traceinfo_callstack_item, A2> &rhs) const {
+    bool operator()(const boost::container::vector<traceinfo_callstack_item, A1> &lhs,
+                    const boost::container::vector<traceinfo_callstack_item, A2> &rhs) const {
         if (lhs.size() != rhs.size())
             return false;
         return std::equal(lhs.begin(), lhs.end(), rhs.begin(),
@@ -63,18 +63,18 @@ struct callstack_container_equal_by_ip_and_sp {
     }
 };
 
-typedef multi_index_container<
+typedef boost::multi_index_container<
     aggregated_traceinfo,
-    multi_index::indexed_by<
-        multi_index::hashed_unique<
-            multi_index::member<aggregated_traceinfo, aggregated_callstack, &aggregated_traceinfo::callstack>,
+    boost::multi_index::indexed_by<
+        boost::multi_index::hashed_unique<
+            boost::multi_index::member<aggregated_traceinfo, aggregated_callstack, &aggregated_traceinfo::callstack>,
             callstack_container_hash_by_ip_and_sp, callstack_container_equal_by_ip_and_sp
         >,
-        multi_index::ordered_non_unique<
-            multi_index::member<aggregated_traceinfo, std::size_t, &aggregated_traceinfo::memsize>
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::member<aggregated_traceinfo, std::size_t, &aggregated_traceinfo::memsize>
         >,
-        multi_index::ordered_non_unique<
-            multi_index::member<aggregated_traceinfo, std::size_t, &aggregated_traceinfo::times>
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::member<aggregated_traceinfo, std::size_t, &aggregated_traceinfo::times>
         >
     >
 > aggregated_indexed_container;
@@ -106,7 +106,7 @@ struct aggregated_indexed_container_builder {
 
         if (view.check_traceinfo_reqs(tinfo)) {
             typedef indexed_container_t::nth_index<0>::type index0;
-            index0 &idx = get<0>(indexed_container);
+            index0 &idx = boost::get<0>(indexed_container);
             index0::iterator iter = idx.find(tinfo.callstack);
             if (iter != idx.end()) {
                 idx.modify(iter, aggregated_traceinfo_fields_updater(tinfo.memsize));
@@ -129,13 +129,13 @@ struct aggregated_traceinfo_printer {
         if (view.is_interrupted())
             return false;
 
-        using namespace spirit::karma;
-        spirit::karma::ostream_iterator<char> sink(os);
+        using namespace boost::spirit::karma;
+        ostream_iterator<char> sink(os);
         generate(sink, "size=" << ulong_long << ", times=" << ulong_long << "\n",
                 tinfo.memsize, tinfo.times);
 
         if (view.show_callstack())
-            for_each(tinfo.callstack, *this);
+            boost::for_each(tinfo.callstack, *this);
 
         return true;
     }

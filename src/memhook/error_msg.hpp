@@ -5,8 +5,7 @@
 
 namespace memhook {
 
-void error_msg(const char *err_s) BOOST_NOEXCEPT_OR_NOTHROW;
-void dlsym_error_msg(const char *err_s);
+void error_msg(const char *title, const char *msg);
 
 } // memhook
 

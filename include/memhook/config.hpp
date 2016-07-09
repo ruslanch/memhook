@@ -2,9 +2,6 @@
 #define MEMHOOK_CONFIG_HPP_INCLUDED
 
 #include "sysconfig.hpp"
-
-#define BOOST_SPIRIT_USE_PHOENIX_V3 1
-#define BOOST_CHRONO_VERSION 2
 #include <boost/config.hpp>
 
 #if (HAVE_GCC_BUILTIN_RETURN_ADDRESS+0) && (HAVE_GCC_BUILTIN_EXTRACT_RETURN_ADDRESS+0)
@@ -25,9 +22,5 @@
 // TODO: use asm implementation
 #   error __sync_val_compare_and_swap does not supported
 #endif
-
-namespace memhook {
-    using namespace boost;
-} // memhook
 
 #endif // MEMHOOK_CONFIG_HPP_INCLUDED

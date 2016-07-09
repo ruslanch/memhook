@@ -6,10 +6,10 @@
 #include <boost/noncopyable.hpp>
 
 namespace memhook {
-typedef interprocess::basic_managed_shared_memory<
+typedef boost::interprocess::basic_managed_shared_memory<
         char,
-        interprocess::rbtree_best_fit<interprocess::null_mutex_family>,
-        interprocess::iset_index
+        boost::interprocess::rbtree_best_fit<boost::interprocess::null_mutex_family>,
+        boost::interprocess::iset_index
     > managed_shared_memory_no_lock;
 
 typedef mapping_traits<
@@ -17,14 +17,14 @@ typedef mapping_traits<
     > shared_memory_traits;
 
 template <>
-struct mapping_cleaner<shared_memory_traits> : private noncopyable
+struct mapping_cleaner<shared_memory_traits> : private boost::noncopyable
 {
     std::string name_;
     explicit mapping_cleaner(const char *name) : name_(name) {
-        interprocess::shared_memory_object::remove(name_.c_str());
+        boost::interprocess::shared_memory_object::remove(name_.c_str());
     }
     ~mapping_cleaner() {
-        interprocess::shared_memory_object::remove(name_.c_str());
+        boost::interprocess::shared_memory_object::remove(name_.c_str());
     }
 };
 

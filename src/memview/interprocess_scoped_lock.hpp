@@ -9,15 +9,15 @@
 
 namespace memhook {
 
-struct interprocess_scoped_lock : private memhook::noncopyable {
+struct interprocess_scoped_lock : private boost::noncopyable {
     scoped_signal_block signal_block_;
     scoped_signal       signal_;
 
-    typedef interprocess::scoped_lock<interprocess::interprocess_mutex>
+    typedef boost::interprocess::scoped_lock<boost::interprocess::interprocess_mutex>
         interprocess_mutex_scoped_lock;
-    movelib::unique_ptr<interprocess_mutex_scoped_lock> plock_;
+    boost::movelib::unique_ptr<interprocess_mutex_scoped_lock> plock_;
 
-    interprocess_scoped_lock(interprocess::interprocess_mutex &mutex, bool no_lock);
+    interprocess_scoped_lock(boost::interprocess::interprocess_mutex &mutex, bool no_lock);
 };
 
 } // namespace

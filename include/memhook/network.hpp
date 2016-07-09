@@ -43,7 +43,8 @@ struct net_request : net_proto_tag {
             , callstack() {}
 
     net_request(net_req_type type, uintptr_t address, std::size_t memsize,
-                const system_clock::time_point &timestamp, callstack_container &a_callstack)
+                const boost::chrono::system_clock::time_point &timestamp,
+                callstack_container &a_callstack)
             : type(type)
             , traceinfo(address, memsize, timestamp)
             , callstack() {
@@ -66,10 +67,10 @@ struct net_response : net_proto_tag {
     net_req_type req_type;
     net_res_type response;
 
-    typedef container::vector<basic_traceinfo<> > traceinfo_vec_t;
+    typedef boost::container::vector<basic_traceinfo<> > traceinfo_vec_t;
     traceinfo_vec_t traceinfo_vec;
 
-    typedef unordered_map<uintptr_t, container::string> symbol_table_t;
+    typedef boost::unordered_map<uintptr_t, boost::container::string> symbol_table_t;
     symbol_table_t symtab;
     symbol_table_t shltab;
 };

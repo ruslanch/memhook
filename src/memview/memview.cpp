@@ -12,7 +12,7 @@
 #include <cstdlib>
 
 namespace memhook { namespace detail {
-    namespace po = program_options;
+    namespace po = boost::program_options;
 
     void usage(const po::options_description &options) {
         std::cout << "Usage: memview [options] [-m | -f path]\n";
@@ -47,11 +47,11 @@ namespace memhook { namespace detail {
         try {
             po::positional_options_description positional_options;
             positional_options.add("mapped-file", -1);
-            program_options::store(program_options::command_line_parser(argc, argv)
+            po::store(po::command_line_parser(argc, argv)
                 .options(options)
                 .positional(positional_options)
                 .run(), map);
-            program_options::notify(map);
+            po::notify(map);
 
             if (map.count("help")) {
                 usage(options);
@@ -72,16 +72,16 @@ namespace memhook { namespace detail {
         return true;
     }
 
-    system_clock::time_point time_point_from_string(const std::string &string) {
+    boost::chrono::system_clock::time_point time_point_from_string(const std::string &string) {
         std::istringstream sstream(string);
-        system_clock::time_point time_point;
-        sstream >> chrono::time_fmt(chrono::timezone::local, "%Y-%m-%d %H:%M:%S") >> time_point;
+        boost::chrono::system_clock::time_point time_point;
+        sstream >> boost::chrono::time_fmt(boost::chrono::timezone::local, "%Y-%m-%d %H:%M:%S") >> time_point;
         return time_point;
     }
 
-    system_clock::duration duration_from_string(const std::string &string) {
+    boost::chrono::system_clock::duration duration_from_string(const std::string &string) {
         std::istringstream sstream(string);
-        system_clock::duration duration;
+        boost::chrono::system_clock::duration duration;
         sstream >> duration;
         return duration;
     }
@@ -101,28 +101,28 @@ int main(int argc, char const *argv[])
 
     try
     {
-        tuple<std::string, movelib::unique_ptr<mapped_view_kit> > ctx;
+        boost::tuple<std::string, boost::movelib::unique_ptr<mapped_view_kit> > ctx;
         if (options_map.count("mapped-file"))
         {
-            get<0>(ctx) = options_map["mapped-file"].as<std::string>();
-            movelib::unique_ptr<mapped_view_kit> kit(make_mmf_view_kit());
-            get<1>(ctx).swap(kit);
+            boost::get<0>(ctx) = options_map["mapped-file"].as<std::string>();
+            boost::movelib::unique_ptr<mapped_view_kit> kit(make_mmf_view_kit());
+            boost::get<1>(ctx).swap(kit);
         }
         else
         {
             if (options_map.count("shared-memory"))
-                get<0>(ctx) = options_map["shared-memory"].as<std::string>();
+                boost::get<0>(ctx) = options_map["shared-memory"].as<std::string>();
             else
-                get<0>(ctx) = MEMHOOK_SHARED_MEMORY;
-            movelib::unique_ptr<mapped_view_kit> kit(make_shm_view_kit());
-            get<1>(ctx).swap(kit);
+                boost::get<0>(ctx) = MEMHOOK_SHARED_MEMORY;
+            boost::movelib::unique_ptr<mapped_view_kit> kit(make_shm_view_kit());
+            boost::get<1>(ctx).swap(kit);
         }
 
-        movelib::unique_ptr<mapped_view> view;
+        boost::movelib::unique_ptr<mapped_view> view;
         if (options_map.count("aggregate")) {
-            view.reset(get<1>(ctx)->make_aggregated_view(get<0>(ctx).c_str()));
+            view.reset(boost::get<1>(ctx)->make_aggregated_view(boost::get<0>(ctx).c_str()));
         } else {
-            view.reset(get<1>(ctx)->make_view(get<0>(ctx).c_str()));
+            view.reset(boost::get<1>(ctx)->make_view(boost::get<0>(ctx).c_str()));
         }
 
         if (options_map.count("no-lock"))
@@ -147,24 +147,24 @@ int main(int argc, char const *argv[])
                 view->show_callstack(op.second.as<bool>());
 
             if (op.first == "min-time-from-now")
-                view->add_req(get<1>(ctx)->make_min_time_from_now(duration_from_string(
+                view->add_req(boost::get<1>(ctx)->make_min_time_from_now(duration_from_string(
                     op.second.as<std::string>())));
             if (op.first == "max-time-from-now")
-                view->add_req(get<1>(ctx)->make_max_time_from_now(duration_from_string(
+                view->add_req(boost::get<1>(ctx)->make_max_time_from_now(duration_from_string(
                     op.second.as<std::string>())));
             if (op.first == "min-time")
-                view->add_req(get<1>(ctx)->make_min_time(time_point_from_string(
+                view->add_req(boost::get<1>(ctx)->make_min_time(time_point_from_string(
                     op.second.as<std::string>())));
             if (op.first == "max-time")
-                view->add_req(get<1>(ctx)->make_max_time(time_point_from_string(
+                view->add_req(boost::get<1>(ctx)->make_max_time(time_point_from_string(
                     op.second.as<std::string>())));
             if (op.first == "min-size")
-                view->add_req(get<1>(ctx)->make_min_size(
+                view->add_req(boost::get<1>(ctx)->make_min_size(
                     op.second.as<std::size_t>()));
         }
         view->write(std::cout);
     }
-    catch (const interprocess::interprocess_exception &e)
+    catch (const boost::interprocess::interprocess_exception &e)
     {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;

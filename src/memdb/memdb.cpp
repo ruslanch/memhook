@@ -12,7 +12,7 @@
 #include <cstdlib>
 
 namespace memhook { namespace detail {
-    namespace po = program_options;
+    namespace po = boost::program_options;
 
     void usage(const po::options_description &options) {
         std::cout << "Usage: memdb [options] [-m | -f path] [-p PORT_NUM]\n";
@@ -34,11 +34,11 @@ namespace memhook { namespace detail {
         try {
             po::positional_options_description positional_options;
             positional_options.add("mapped-file", -1);
-            program_options::store(program_options::command_line_parser(argc, argv)
+            po::store(po::command_line_parser(argc, argv)
                 .options(options)
                 .positional(positional_options)
                 .run(), map);
-            program_options::notify(map);
+            po::notify(map);
 
             if (map.count("shared-memory") && map.count("mapped-file")) {
                 std::cerr << "can't use `--shared-memory` and `--mapped-file` "
@@ -70,11 +70,11 @@ int main(int argc, char const *argv[])
         if (!parse_command_line_arguments(argc, argv, options_map))
             return EXIT_FAILURE;
 
-        shared_ptr<mapped_storage> ctx;
+        boost::shared_ptr<mapped_storage> ctx;
         if (options_map.count("mapped-file"))
         {
             std::string file_path = options_map["mapped-file"].as<std::string>();
-            shared_ptr<mapped_storage> tmp(make_mapped_file_storage(file_path.c_str(),
+            boost::shared_ptr<mapped_storage> tmp(make_mapped_file_storage(file_path.c_str(),
                 options_map["size"].as<std::size_t>()));
             ctx.swap(tmp);
         }
@@ -85,23 +85,23 @@ int main(int argc, char const *argv[])
                 name = options_map["shared-memory"].as<std::string>();
             else
                 name = MEMHOOK_SHARED_MEMORY;
-            shared_ptr<mapped_storage> tmp(make_shared_memory_storage(name.c_str(),
+            boost::shared_ptr<mapped_storage> tmp(make_shared_memory_storage(name.c_str(),
                 options_map["size"].as<std::size_t>()));
             ctx.swap(tmp);
         }
 
-        asio::io_service io_service;
-        asio::signal_set signals(io_service, SIGINT, SIGTERM, SIGQUIT);
-        signals.async_wait(bind(&asio::io_service::stop, &io_service));
+        boost::asio::io_service io_service;
+        boost::asio::signal_set signals(io_service, SIGINT, SIGTERM, SIGQUIT);
+        signals.async_wait(boost::bind(&boost::asio::io_service::stop, &io_service));
 
         memdb_server server(ctx, io_service,
                 options_map["host"].as<std::string>().c_str(),
                 options_map["port"].as<int>());
 
-        thread_group tg;
-        const unsigned hardware_concurrency = thread::hardware_concurrency();
+        boost::thread_group tg;
+        const unsigned hardware_concurrency = boost::thread::hardware_concurrency();
         for (unsigned i = 0; i < hardware_concurrency; ++i)
-            tg.create_thread(bind(&asio::io_service::run, &io_service));
+            tg.create_thread(boost::bind(&boost::asio::io_service::run, &io_service));
         tg.join_all();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;

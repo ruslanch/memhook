@@ -16,7 +16,7 @@ public:
     void insert(uintptr_t address, std::size_t memsize,
         callstack_container &callstack);
     void insert(uintptr_t address, std::size_t memsize,
-        const system_clock::time_point &timestamp,
+        const boost::chrono::system_clock::time_point &timestamp,
         callstack_container &callstack);
     bool erase(uintptr_t address);
     bool update_size(uintptr_t address, std::size_t memsize);
@@ -24,9 +24,9 @@ public:
 private:
     void send(const net_request &request);
 
-    asio::ip::tcp::iostream iostream_;
-    asio::streambuf         sbuf_;
-    mutex                   sbuf_mutex_;
+    boost::asio::ip::tcp::iostream iostream_;
+    boost::asio::streambuf         sbuf_;
+    boost::mutex                   sbuf_mutex_;
 };
 
 mapped_storage *make_network_storage(const char *host, int port);

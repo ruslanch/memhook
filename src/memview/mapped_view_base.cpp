@@ -26,7 +26,7 @@ unique_char_buf_t cxx_symbol_demangle(const char *source) {
     unique_char_buf_t res(abi::__cxa_demangle(source, NULL, NULL, &ret),
             unique_char_buf_full_free);
     if (ret == 0 && res)
-        return move(res);
+        return boost::move(res);
     return unique_char_buf_t(source, unique_char_buf_null_free);
 }
 
@@ -54,7 +54,8 @@ void mapped_view_base::add_req(mapped_view_req *req) {
 }
 
 bool mapped_view_base::check_traceinfo_reqs(const traceinfo_base &tinfo) const {
-    return find_if(reqs_, !bind(&mapped_view_req::invoke, _1, cref(tinfo))) == reqs_.end();
+    return boost::find_if(reqs_,
+            !boost::bind(&mapped_view_req::invoke, _1, boost::cref(tinfo))) == reqs_.end();
 }
 
 bool mapped_view_base::is_interrupted() {

@@ -10,7 +10,7 @@ namespace memhook {
 
 class mapped_view_req;
 
-class mapped_view : noncopyable {
+class mapped_view : boost::noncopyable {
 public:
     virtual ~mapped_view() {}
     virtual void write(std::ostream &os)    = 0;
@@ -29,20 +29,20 @@ public:
     virtual std::size_t get_free_memory()   = 0;
 };
 
-class mapped_view_kit : noncopyable {
+class mapped_view_kit : boost::noncopyable {
 public:
     virtual ~mapped_view_kit() {}
     virtual mapped_view     *make_view(const char *name) = 0;
     virtual mapped_view     *make_aggregated_view(const char *name) = 0;
     virtual mapped_view_req *make_min_size(std::size_t minsize) = 0;
-    virtual mapped_view_req *make_min_time(const system_clock::time_point &min_time) = 0;
-    virtual mapped_view_req *make_max_time(const system_clock::time_point &max_time) = 0;
-    virtual mapped_view_req *make_min_time_from_now(const system_clock::duration &min_time) = 0;
-    virtual mapped_view_req *make_max_time_from_now(const system_clock::duration &max_time) = 0;
+    virtual mapped_view_req *make_min_time(const boost::chrono::system_clock::time_point &min_time) = 0;
+    virtual mapped_view_req *make_max_time(const boost::chrono::system_clock::time_point &max_time) = 0;
+    virtual mapped_view_req *make_min_time_from_now(const boost::chrono::system_clock::duration &min_time) = 0;
+    virtual mapped_view_req *make_max_time_from_now(const boost::chrono::system_clock::duration &max_time) = 0;
 };
 
-movelib::unique_ptr<mapped_view_kit> make_shm_view_kit();
-movelib::unique_ptr<mapped_view_kit> make_mmf_view_kit();
+boost::movelib::unique_ptr<mapped_view_kit> make_shm_view_kit();
+boost::movelib::unique_ptr<mapped_view_kit> make_mmf_view_kit();
 
 } // memhook
 

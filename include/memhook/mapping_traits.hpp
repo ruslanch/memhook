@@ -21,15 +21,15 @@ namespace memhook {
 
 template <typename Segment>
 struct mapping_traits {
-    typedef Segment                                        segment;
-    typedef typename Segment::segment_manager              segment_manager;
-    typedef interprocess::allocator<void, segment_manager> generic_allocator;
+    typedef Segment                                               segment;
+    typedef typename Segment::segment_manager                     segment_manager;
+    typedef boost::interprocess::allocator<void, segment_manager> generic_allocator;
 };
 
 template <typename Traits>
 struct mapped_traceinfo_types {
     typedef basic_traceinfo<
-            interprocess::allocator<
+            boost::interprocess::allocator<
                 traceinfo_callstack_item,
                 typename Traits::segment_manager
             >
@@ -39,64 +39,65 @@ struct mapped_traceinfo_types {
 template <typename Traits>
 struct mapped_traceinfo
         : basic_traceinfo<
-                interprocess::allocator<traceinfo_callstack_item, typename Traits::segment_manager>
+                boost::interprocess::allocator<traceinfo_callstack_item, typename Traits::segment_manager>
             > {
     typedef basic_traceinfo<
-            interprocess::allocator<traceinfo_callstack_item, typename Traits::segment_manager>
+            boost::interprocess::allocator<traceinfo_callstack_item, typename Traits::segment_manager>
         > base_type;
     typedef typename Traits::generic_allocator generic_allocator;
 
     explicit mapped_traceinfo(const generic_allocator &allocator_instance)
         : base_type(allocator_instance) {}
 
-    mapped_traceinfo(uintptr_t address, size_t memsize, const system_clock::time_point &timestamp,
+    mapped_traceinfo(uintptr_t address, size_t memsize,
+            const boost::chrono::system_clock::time_point &timestamp,
             const callstack_container &callstack, const generic_allocator &allocator_instance)
         : base_type(address, memsize, timestamp, callstack, allocator_instance) {}
 };
 
 template <typename Traits, typename CharT = char>
-struct mapped_container : interprocess::interprocess_mutex {
+struct mapped_container : boost::interprocess::interprocess_mutex {
     typedef typename Traits::segment_manager   segment_manager;
     typedef typename Traits::generic_allocator generic_allocator;
     typedef mapped_traceinfo<Traits>           traceinfo_type;
 
-    typedef multi_index_container<
+    typedef boost::multi_index_container<
         traceinfo_type,
-        multi_index::indexed_by<
-            multi_index::hashed_unique<
-                multi_index::member<traceinfo_base,
+        boost::multi_index::indexed_by<
+            boost::multi_index::hashed_unique<
+                boost::multi_index::member<traceinfo_base,
                     uintptr_t, &traceinfo_base::address
                 >
             >,
-            multi_index::ordered_non_unique<
-                multi_index::member<traceinfo_base,
-                    system_clock::time_point, &traceinfo_base::timestamp
+            boost::multi_index::ordered_non_unique<
+                boost::multi_index::member<traceinfo_base,
+                    boost::chrono::system_clock::time_point, &traceinfo_base::timestamp
                 >
             >,
-            multi_index::ordered_non_unique<
-                multi_index::member<traceinfo_base,
+            boost::multi_index::ordered_non_unique<
+                boost::multi_index::member<traceinfo_base,
                     std::size_t, &traceinfo_base::memsize
                 >
             >
         >,
-        interprocess::allocator<traceinfo_type, segment_manager>
+        boost::interprocess::allocator<traceinfo_type, segment_manager>
     > indexed_container_t;
     indexed_container_t indexed_container;
 
-    typedef container::basic_string<
+    typedef boost::container::basic_string<
             CharT,
             std::char_traits<CharT>,
-            interprocess::allocator<CharT, segment_manager>
+            boost::interprocess::allocator<CharT, segment_manager>
         > string_type;
 
     typedef std::pair<const uintptr_t, string_type> symbol_table_value_type;
 
-    typedef unordered_map<
+    typedef boost::unordered_map<
             uintptr_t,
             string_type,
-            hash<uintptr_t>,
+            boost::hash<uintptr_t>,
             std::equal_to<uintptr_t>,
-            interprocess::allocator<symbol_table_value_type, segment_manager>
+            boost::interprocess::allocator<symbol_table_value_type, segment_manager>
         > symbol_table_t;
     symbol_table_t symtab;
     symbol_table_t shltab;

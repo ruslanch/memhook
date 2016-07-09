@@ -4,22 +4,23 @@
 
 namespace memhook {
 
-memdb_session::memdb_session(const shared_ptr<mapped_storage> &storage, asio::io_service& io_service)
-        : socket_(io_service)
-        , sbuf_()
-        , storage_(storage) {}
+memdb_session::memdb_session(const boost::shared_ptr<mapped_storage> &storage,
+            boost::asio::io_service& io_service)
+    : socket_(io_service)
+    , sbuf_()
+    , storage_(storage) {}
 
 void memdb_session::start() {
     const std::size_t outbound_size = sizeof(net_proto_outbound);
-    asio::async_read(socket_, sbuf_, asio::transfer_at_least(outbound_size),
-        bind(&memdb_session::on_read_complete, shared_from_this(),
-                parsing_callback(bind(&memdb_session::parse_outbound, this)),
-                asio::placeholders::error)
+    boost::asio::async_read(socket_, sbuf_, boost::asio::transfer_at_least(outbound_size),
+        boost::bind(&memdb_session::on_read_complete, shared_from_this(),
+                parsing_callback(boost::bind(&memdb_session::parse_outbound, this)),
+                boost::asio::placeholders::error)
     );
 }
 
 void memdb_session::on_read_complete(const parsing_callback &callback,
-        const system::error_code& e) {
+        const boost::system::error_code& e) {
     if (e) {
         std::cout << e.message() << std::endl;
         return;
@@ -31,21 +32,21 @@ void memdb_session::on_read_complete(const parsing_callback &callback,
         return;
     }
 
-    asio::async_read(socket_, sbuf_, asio::transfer_exactly(parsing_info.size),
-        bind(&memdb_session::on_read_complete, shared_from_this(),
-                parsing_callback(bind(parsing_info.callback, this)),
-                asio::placeholders::error)
+    boost::asio::async_read(socket_, sbuf_, boost::asio::transfer_exactly(parsing_info.size),
+        boost::bind(&memdb_session::on_read_complete, shared_from_this(),
+                parsing_callback(boost::bind(parsing_info.callback, this)),
+                boost::asio::placeholders::error)
     );
 }
 
 memdb_session::parsing_info memdb_session::parse_outbound() {
-    asio::const_buffer inputbuf = asio::buffer(sbuf_.data());
-    std::size_t  bytes_inputbuf = asio::buffer_size(inputbuf);
+    boost::asio::const_buffer inputbuf = boost::asio::buffer(sbuf_.data());
+    std::size_t  bytes_inputbuf = boost::asio::buffer_size(inputbuf);
 
     net_proto_outbound outbound;
     read(inputbuf, outbound);
 
-    std::size_t bytes_read = bytes_inputbuf - asio::buffer_size(inputbuf);
+    std::size_t bytes_read = bytes_inputbuf - boost::asio::buffer_size(inputbuf);
     sbuf_.consume(bytes_read);
     bytes_inputbuf -= bytes_read;
     if (bytes_inputbuf < outbound.size)
@@ -54,15 +55,15 @@ memdb_session::parsing_info memdb_session::parse_outbound() {
 }
 
 memdb_session::parsing_info memdb_session::parse_inbound() {
-    asio::const_buffer inputbuf = asio::buffer(sbuf_.data());
-    std::size_t  bytes_inputbuf = asio::buffer_size(inputbuf);
+    boost::asio::const_buffer inputbuf = boost::asio::buffer(sbuf_.data());
+    std::size_t  bytes_inputbuf = boost::asio::buffer_size(inputbuf);
 
     net_request request;
     read(inputbuf, request);
     if (!do_handle(request))
         memdb_session::parsing_info(0, NULL);
 
-    std::size_t bytes_read = bytes_inputbuf - asio::buffer_size(inputbuf);
+    std::size_t bytes_read = bytes_inputbuf - boost::asio::buffer_size(inputbuf);
     sbuf_.consume(bytes_read);
     bytes_inputbuf -= bytes_read;
 

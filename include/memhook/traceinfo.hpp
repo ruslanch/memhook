@@ -14,12 +14,12 @@ struct traceinfo_base {
     traceinfo_base()
             : address(), memsize(), timestamp() {}
 
-    traceinfo_base(uintptr_t address, size_t memsize, const system_clock::time_point &timestamp)
+    traceinfo_base(uintptr_t address, size_t memsize, const boost::chrono::system_clock::time_point &timestamp)
             : address(address), memsize(memsize), timestamp(timestamp) {}
 
     uintptr_t   address;
     std::size_t memsize;
-    system_clock::time_point timestamp;
+    boost::chrono::system_clock::time_point timestamp;
 };
 
 struct traceinfo_callstack_item {
@@ -52,7 +52,7 @@ struct traceinfo_callstack_item_builder {
 template <typename Allocator = std::allocator<traceinfo_callstack_item> >
 struct basic_traceinfo : traceinfo_base {
     typedef Allocator allocator_type;
-    typedef container::vector<traceinfo_callstack_item, allocator_type> callstack_type;
+    typedef boost::container::vector<traceinfo_callstack_item, allocator_type> callstack_type;
 
     basic_traceinfo(const allocator_type &allocator = allocator_type())
             : traceinfo_base()
@@ -62,12 +62,12 @@ struct basic_traceinfo : traceinfo_base {
             : traceinfo_base(traceinfo)
             , callstack(allocator) {}
 
-    basic_traceinfo(uintptr_t address, size_t memsize, const system_clock::time_point &timestamp,
+    basic_traceinfo(uintptr_t address, size_t memsize, const boost::chrono::system_clock::time_point &timestamp,
                 const callstack_container &a_callstack, const allocator_type &allocator = allocator_type())
             : traceinfo_base(address, memsize, timestamp)
             , callstack(allocator) {
         callstack.reserve(a_callstack.size());
-        transform(a_callstack, std::back_inserter(callstack), traceinfo_callstack_item_builder());
+        boost::transform(a_callstack, std::back_inserter(callstack), traceinfo_callstack_item_builder());
     }
 
     callstack_type callstack;
@@ -79,7 +79,7 @@ BOOST_FUSION_ADAPT_STRUCT(
     memhook::traceinfo_base,
     (uintptr_t,   address)
     (std::size_t, memsize)
-    (memhook::system_clock::time_point, timestamp)
+    (boost::chrono::system_clock::time_point, timestamp)
 );
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -95,7 +95,7 @@ BOOST_FUSION_ADAPT_TPL_STRUCT(
     (memhook::basic_traceinfo)(Allocator),
     (uintptr_t,   address)
     (std::size_t, memsize)
-    (memhook::system_clock::time_point, timestamp)
+    (boost::chrono::system_clock::time_point, timestamp)
     (typename memhook::basic_traceinfo<Allocator>::callstack_type, callstack)
 );
 

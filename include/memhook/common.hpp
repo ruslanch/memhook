@@ -13,8 +13,4 @@
 #define MEMHOOK_SHARED_MEMORY    "ShmMemHook"
 #define MEMHOOK_NETWORK_STORAGE_PORT 20015
 
-namespace memhook {
-    using chrono::system_clock;
-} // memhook
-
 #endif // MEMHOOK_COMMON_HPP_INCLUDED

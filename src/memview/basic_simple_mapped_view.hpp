@@ -16,17 +16,17 @@ struct basic_simple_mapped_view : basic_mapped_view<Traits> {
 protected:
     void do_write(std::ostream &os) {
         if (this->sort_by_address())
-            for_each_do(get<0>(this->get_indexed_container()), os);
+            for_each_do(boost::get<0>(this->get_indexed_container()), os);
         else if (this->sort_by_size())
-            for_each_do(get<2>(this->get_indexed_container()), os);
+            for_each_do(boost::get<2>(this->get_indexed_container()), os);
         else
-            for_each_do(get<1>(this->get_indexed_container()), os);
+            for_each_do(boost::get<1>(this->get_indexed_container()), os);
     }
 
     template <typename Index>
     void for_each_do(const Index &index, std::ostream &os) const {
         simple_traceinfo_printer printer(*this, os);
-        range::find_if(index, !bind<bool>(printer, _1));
+        boost::range::find_if(index, !boost::bind<bool>(printer, _1));
     }
 };
 

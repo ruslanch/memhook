@@ -5,10 +5,11 @@
 #include <boost/interprocess/managed_mapped_file.hpp>
 
 namespace memhook {
-typedef interprocess::basic_managed_mapped_file<
+
+typedef boost::interprocess::basic_managed_mapped_file<
         char,
-        interprocess::rbtree_best_fit<interprocess::null_mutex_family>,
-        interprocess::iset_index
+        boost::interprocess::rbtree_best_fit<boost::interprocess::null_mutex_family>,
+        boost::interprocess::iset_index
     > managed_mapped_file_no_lock;
 
 typedef mapping_traits<
@@ -16,10 +17,10 @@ typedef mapping_traits<
     > mapped_file_traits;
 
 template <>
-struct mapping_cleaner<mapped_file_traits> : private noncopyable
+struct mapping_cleaner<mapped_file_traits> : private boost::noncopyable
 {
     explicit mapping_cleaner(const char *name) {
-        interprocess::file_mapping::remove(name);
+        boost::interprocess::file_mapping::remove(name);
     }
 };
 

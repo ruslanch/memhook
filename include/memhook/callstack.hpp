@@ -11,22 +11,22 @@ namespace memhook
 
 struct callstack_record
 {
-    container::string shl_path;
-    container::string procname;
+    boost::container::string shl_path;
+    boost::container::string procname;
     uintptr_t shl_addr;
     uintptr_t ip;
     uintptr_t sp;
     uintptr_t offp;
 };
 
-typedef container::vector<callstack_record> callstack_container;
+typedef boost::container::vector<callstack_record> callstack_container;
 
 } // memhook
 
 BOOST_FUSION_ADAPT_STRUCT(
     memhook::callstack_record,
-    (container::string, shl_path)
-    (container::string, procname)
+    (boost::container::string, shl_path)
+    (boost::container::string, procname)
     (uintptr_t, shl_addr)
     (uintptr_t, ip)
     (uintptr_t, sp)

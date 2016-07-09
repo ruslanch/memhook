@@ -6,7 +6,7 @@
 
 namespace memhook {
 
-class scoped_use_count : noncopyable {
+class scoped_use_count : boost::noncopyable {
     ssize_t *n_;
 public:
     explicit scoped_use_count(ssize_t *n) : n_(n) {

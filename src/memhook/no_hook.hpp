@@ -11,7 +11,7 @@ public:
   NoHook()  { ++hook_depth_; }
   ~NoHook() { --hook_depth_; }
 
-  static bool IsNested() {
+  static bool is_nested() {
     return hook_depth_ != 0;
   }
 

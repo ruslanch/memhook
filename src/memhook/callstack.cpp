@@ -14,23 +14,23 @@
 #include <dlfcn.h>
 
 #define MEMHOOK_CHECK_UNW(call) \
-    if (BOOST_UNLIKELY(call != 0)) { error_msg(#call " failed"); }
+    if (BOOST_UNLIKELY(call != 0)) { error_msg(#call, " failed"); }
 
 namespace memhook
 {
 
 struct procname_info {
-    container::string procname;
+    boost::container::string procname;
     unw_word_t offp;
     unw_word_t shl_addr;
     procname_info() : procname(), offp(), shl_addr() {}
 };
 
-typedef unordered_map<unw_word_t, procname_info> procname_info_map_t;
-typedef unordered_map<unw_word_t, container::string>  shl_path_map_t;
+typedef boost::unordered_map<unw_word_t, procname_info> procname_info_map_t;
+typedef boost::unordered_map<unw_word_t, boost::container::string> shl_path_map_t;
 
 struct callstack_internal {
-    mutex               map_mutex;
+    boost::mutex        map_mutex;
     procname_info_map_t procname_info_map;
     shl_path_map_t      shl_path_map;
 };
@@ -41,13 +41,13 @@ static const char unknown_tag[] = "<unknown>";
 
 void init_callstack() {
     MEMHOOK_CHECK_UNW(unw_set_caching_policy(unw_local_addr_space, UNW_CACHE_PER_THREAD));
-    movelib::unique_ptr<callstack_internal> ctx(movelib::make_unique<callstack_internal>());
+    boost::movelib::unique_ptr<callstack_internal> ctx(boost::movelib::make_unique<callstack_internal>());
     MEMHOOK_CAS(&callstack_pctx, NULL, ctx.get());
     ctx.release();
 }
 
 void fini_callstack() {
-    movelib::unique_ptr<callstack_internal> ctx(MEMHOOK_CAS(&callstack_pctx, callstack_pctx, NULL));
+    boost::movelib::unique_ptr<callstack_internal> ctx(MEMHOOK_CAS(&callstack_pctx, callstack_pctx, NULL));
     if (ctx) {
         while (MEMHOOK_CAS(&callstack_pctx_use_count, 0, 0) != 0)
             pthread_yield();
@@ -59,8 +59,8 @@ void flush_callstack_cache() {
 }
 
 static void get_callstack_procinfo(callstack_internal *ctx, unw_word_t ip, unw_cursor_t cursor,
-        container::string &shl_path, unw_word_t &shl_addr, container::string &procname, unw_word_t &offp) {
-    unique_lock<mutex> lock(ctx->map_mutex);
+        boost::container::string &shl_path, unw_word_t &shl_addr, boost::container::string &procname, unw_word_t &offp) {
+    boost::unique_lock<boost::mutex> lock(ctx->map_mutex);
     procname_info_map_t::const_iterator iter = ctx->procname_info_map.find(ip);
     if (iter != ctx->procname_info_map.end()) {
         shl_path_map_t::const_iterator iter2 = ctx->shl_path_map.find(iter->second.shl_addr);
@@ -74,7 +74,7 @@ static void get_callstack_procinfo(callstack_internal *ctx, unw_word_t ip, unw_c
         offp     = iter->second.offp;
     } else {
         lock.unlock();
-        array<char, 1024> buf;
+        boost::array<char, 1024> buf;
         procname_info pni;
         if (unw_get_proc_name(&cursor, buf.data(), buf.size(), &offp) == 0) {
             pni.procname = buf.data();
@@ -116,7 +116,7 @@ void get_callstack(callstack_container &callstack) {
     unw_getcontext(&uc);
     unw_init_local(&cursor, &uc);
 
-    container::string shl_path, procname;
+    boost::container::string shl_path, procname;
     unw_word_t ip = 0;
     while (unw_step(&cursor) > 0) {
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
