@@ -78,7 +78,7 @@ MemDBSession::ParsingInfo MemDBSession::ParseOutbound()
     sbuf_.consume(bytes_read);
 
     if (bytes_inputbuf < outbound.size)
-        return ParsingInfo(outbound.size - bytes_inputbuf, &MemDBSession::ParseOutbound);
+        return ParsingInfo(outbound.size - bytes_inputbuf, &MemDBSession::ParseInbound);
 
     return ParseInbound();
 }
