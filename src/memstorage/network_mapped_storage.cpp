@@ -16,15 +16,21 @@ class NetworkMappedStorage : public MappedStorage
 {
 public:
     NetworkMappedStorage(const char *host, int port);
+    ~NetworkMappedStorage();
     void Insert(uintptr_t address, std::size_t memsize,
         const boost::chrono::system_clock::time_point &timestamp,
         const CallStackInfo &callstack);
     bool Erase(uintptr_t address);
     bool UpdateSize(uintptr_t address, std::size_t memsize);
     void Clear();
+    void Flush();
+    std::string GetName() const;
 
 private:
     void Send(const NetRequest &request);
+
+    std::string host_;
+    int         port_;
 
     boost::asio::ip::tcp::iostream iostream_;
     boost::asio::streambuf         sbuf_;
@@ -32,7 +38,9 @@ private:
 };
 
 NetworkMappedStorage::NetworkMappedStorage(const char *host, int port)
-        : iostream_()
+        : host_(host)
+        , port_(port)
+        , iostream_()
         , sbuf_()
         , sbuf_mutex_()
 {
@@ -40,7 +48,14 @@ NetworkMappedStorage::NetworkMappedStorage(const char *host, int port)
     iostream_.connect(host, boost::lexical_cast<std::string>(port));
     if (!iostream_)
         boost::asio::detail::throw_error(iostream_.error());
+
+    NetRequest request(NetReqNewStorage, static_cast<uint32_t>(::getpid()), 0,
+        boost::chrono::system_clock::now());
+    Send(request);
 }
+
+NetworkMappedStorage::~NetworkMappedStorage()
+{}
 
 void NetworkMappedStorage::Insert(uintptr_t address, std::size_t memsize,
         const boost::chrono::system_clock::time_point &timestamp,
@@ -52,9 +67,7 @@ void NetworkMappedStorage::Insert(uintptr_t address, std::size_t memsize,
 
 bool NetworkMappedStorage::Erase(uintptr_t address)
 {
-    CallStackInfo callstack;
-    NetRequest request(NetReqErase, address, 0, boost::chrono::system_clock::now(),
-        callstack);
+    NetRequest request(NetReqErase, address, 0, boost::chrono::system_clock::now());
     Send(request);
     return true;
 }
@@ -70,10 +83,18 @@ bool NetworkMappedStorage::UpdateSize(uintptr_t address, std::size_t memsize)
 
 void NetworkMappedStorage::Clear()
 {
-    CallStackInfo callstack;
-    NetRequest request(NetReqClear, 0, 0, boost::chrono::system_clock::now(),
-        callstack);
+    NetRequest request(NetReqClear, 0, 0, boost::chrono::system_clock::now());
     Send(request);
+}
+
+void NetworkMappedStorage::Flush()
+{
+    iostream_.flush();
+}
+
+std::string NetworkMappedStorage::GetName() const
+{
+    return host_ + ':' + boost::lexical_cast<std::string>(port_);
 }
 
 void NetworkMappedStorage::Send(const NetRequest &request)
@@ -87,9 +108,8 @@ void NetworkMappedStorage::Send(const NetRequest &request)
     serialization::Write(tmpbuf, outbound);
     serialization::Write(tmpbuf, request);
     BOOST_ASSERT(buffer_size(tmpbuf) == 0);
-
     iostream_.rdbuf()->sputn(boost::asio::buffer_cast<const char *>(buf), buf_size);
-    iostream_.flush();
+    // iostream_.flush();
     sbuf_.consume(buf_size);
 }
 
@@ -102,7 +122,7 @@ class NetworkMappedStorageCreator : public MappedStorageCreator
 {
 public:
     NetworkMappedStorageCreator(const char *host, int port);
-    unique_ptr<MappedStorage> New() const;
+    unique_ptr<MappedStorage> New(uintptr_t guide) const;
 
 private:
     std::string host_;
@@ -113,7 +133,7 @@ NetworkMappedStorageCreator::NetworkMappedStorageCreator(const char *host, int p
         : host_(host), port_(port)
 {}
 
-unique_ptr<MappedStorage> NetworkMappedStorageCreator::New() const
+unique_ptr<MappedStorage> NetworkMappedStorageCreator::New(uintptr_t) const
 {
     return unique_ptr<MappedStorage>(new NetworkMappedStorage(host_.c_str(), port_));
 }

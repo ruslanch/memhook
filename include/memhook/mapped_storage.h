@@ -20,6 +20,8 @@ struct MappedStorage : noncopyable
     virtual bool Erase(uintptr_t address) = 0;
     virtual bool UpdateSize(uintptr_t address, std::size_t memsize) = 0;
     virtual void Clear() = 0;
+    virtual void Flush() = 0;
+    virtual std::string GetName() const = 0;
 };
 
 unique_ptr<MappedStorage> NewSHMMappedStorage(const char *path, std::size_t size);

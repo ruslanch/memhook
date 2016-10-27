@@ -38,7 +38,7 @@ namespace
     SystemClockComporator SYSTEM_CLOCK_COMPORATOR;
 } // namespace
 
-LevelDBStorage::LevelDBStorage(const std::string &path, std::size_t cache_size_mb)
+LevelDBStorage::LevelDBStorage(const char *path, std::size_t cache_size_mb)
     : path_(path)
     , cache_size_mb_(cache_size_mb)
 {
@@ -99,7 +99,17 @@ void LevelDBStorage::Clear()
 
 }
 
-unique_ptr<MappedStorage> NewLevelDBStorage(const std::string &path, std::size_t cache_size_mb)
+void LevelDBStorage::Flush()
+{
+
+}
+
+std::string LevelDBStorage::GetName() const
+{
+    return path_.string();
+}
+
+unique_ptr<MappedStorage> NewLevelDBStorage(const char *path, std::size_t cache_size_mb)
 {
     return unique_ptr<MappedStorage>(new LevelDBStorage(path, cache_size_mb));
 }

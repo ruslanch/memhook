@@ -17,6 +17,9 @@ namespace memhook
 template <typename Traits>
 struct BasicMappedStorage : MappedStorage
 {
+    std::string name_;
+    std::size_t size_;
+
     typedef MappingCleaner<Traits> Cleaner;
     Cleaner cleaner;
 
@@ -36,8 +39,10 @@ struct BasicMappedStorage : MappedStorage
     typedef MappedTraceInfo<Traits> TraceInfo;
 
     BasicMappedStorage(const char *name, std::size_t size)
-        : cleaner(name)
-        , segment(boost::interprocess::create_only, name, size)
+        : name_(name)
+        , size_(size)
+        , cleaner(name_.c_str())
+        , segment(boost::interprocess::create_only, name_.c_str(), size)
         , allocator_instance(segment.get_segment_manager())
         , container(segment.template construct<ConcreteMappedContainer>(
             MEMHOOK_SHARED_CONTAINER)(allocator_instance))
@@ -49,6 +54,9 @@ struct BasicMappedStorage : MappedStorage
     bool Erase(uintptr_t address);
     bool UpdateSize(uintptr_t address, std::size_t memsize);
     void Clear();
+    void Flush();
+
+    std::string GetName() const { return name_; }
 
 private:
     struct SymbolTableUpdater
@@ -130,6 +138,12 @@ void BasicMappedStorage<Traits>::Clear()
     ScopedSignalLock signal_lock;
     boost::interprocess::scoped_lock<boost::interprocess::interprocess_mutex> lock(*container);
     container->indexed_container.clear();
+}
+
+template <typename Traits>
+void BasicMappedStorage<Traits>::Flush()
+{
+    // do nothing
 }
 
 } // memhook

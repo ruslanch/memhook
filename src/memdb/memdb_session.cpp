@@ -17,8 +17,6 @@ MemDBSession::MemDBSession(const shared_ptr<MappedStorageCreator> &storage_creat
 
 void MemDBSession::Start()
 {
-    storage_ = storage_creator_->New();
-
     const std::size_t outbound_size = sizeof(NetProtoOutbound);
     boost::asio::async_read(socket_, sbuf_, boost::asio::transfer_at_least(outbound_size),
         boost::bind(&MemDBSession::OnReadComplete, shared_from_this(),
@@ -32,7 +30,18 @@ void MemDBSession::OnReadComplete(const ParsingCallback &callback,
 {
     if (e)
     {
-        std::cout << e.message() << std::endl;
+        if (e == boost::asio::error::eof)
+        {
+            if (storage_)
+                std::cout << "Close storage, " << storage_->GetName() << std::endl;
+            else
+                std::cout << "Close connection" << std::endl;
+        }
+        else
+        {
+            std::cout << e.message() << "" << std::endl;
+        }
+
         return;
     }
 
@@ -55,14 +64,22 @@ MemDBSession::ParsingInfo MemDBSession::ParseOutbound()
     boost::asio::const_buffer inputbuf = boost::asio::buffer(sbuf_.data());
     std::size_t  bytes_inputbuf = boost::asio::buffer_size(inputbuf);
 
+    if (bytes_inputbuf < sizeof(NetProtoOutbound))
+    {
+        std::cout << "Not enough data, something went wrong" << std::endl;
+        return ParsingInfo(sizeof(NetProtoOutbound) - bytes_inputbuf, &MemDBSession::ParseOutbound);
+    }
+
     NetProtoOutbound outbound;
     serialization::Read(inputbuf, outbound);
 
-    std::size_t bytes_read = bytes_inputbuf - boost::asio::buffer_size(inputbuf);
-    sbuf_.consume(bytes_read);
+    const std::size_t bytes_read = bytes_inputbuf - boost::asio::buffer_size(inputbuf);
     bytes_inputbuf -= bytes_read;
+    sbuf_.consume(bytes_read);
+
     if (bytes_inputbuf < outbound.size)
-        return ParsingInfo(outbound.size - bytes_inputbuf, &MemDBSession::ParseInbound);
+        return ParsingInfo(outbound.size - bytes_inputbuf, &MemDBSession::ParseOutbound);
+
     return ParseInbound();
 }
 
@@ -76,12 +93,13 @@ MemDBSession::ParsingInfo MemDBSession::ParseInbound()
     if (!HandleNetRequest(request))
         return MemDBSession::ParsingInfo(0, NULL);
 
-    std::size_t bytes_read = bytes_inputbuf - boost::asio::buffer_size(inputbuf);
-    sbuf_.consume(bytes_read);
+    const std::size_t bytes_read = bytes_inputbuf - boost::asio::buffer_size(inputbuf);
     bytes_inputbuf -= bytes_read;
+    sbuf_.consume(bytes_read);
 
     if (bytes_inputbuf < sizeof(NetProtoOutbound))
-        return ParsingInfo(sizeof(NetProtoOutbound), &MemDBSession::ParseOutbound);
+        return ParsingInfo(sizeof(NetProtoOutbound) - bytes_inputbuf, &MemDBSession::ParseOutbound);
+
     return ParseOutbound();
 }
 
@@ -97,6 +115,9 @@ bool MemDBSession::HandleNetRequest(NetRequest &request)
             return true;
         case NetReqUpdateSize:
             OnUpdateSize(request.traceinfo);
+            return true;
+        case NetReqNewStorage:
+            OnNewStorage(request.traceinfo.address);
             return true;
         case NetReqUnknown:
         case NetReqFetch:
@@ -120,6 +141,12 @@ void MemDBSession::OnErase(const TraceInfoBase &traceinfo)
 void MemDBSession::OnUpdateSize(const TraceInfoBase &traceinfo)
 {
     storage_->UpdateSize(traceinfo.address, traceinfo.memsize);
+}
+
+void MemDBSession::OnNewStorage(uintptr_t pid)
+{
+    storage_ = storage_creator_->New(pid);
+    std::cout << "Open storage, " << storage_->GetName() << std::endl;
 }
 
 } // memhook

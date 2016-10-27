@@ -19,10 +19,12 @@ add_library(memhook SHARED
     utils.cpp
     callstack_unwinder.cpp
     engine.cpp
-    memhook.cpp)
+    memhook.cpp
+    ../memstorage/mmf_mapped_storage.cpp
+    ../memstorage/shm_mapped_storage.cpp
+    ../memstorage/network_mapped_storage.cpp)
 
 target_link_libraries(memhook LINK_PRIVATE
-    memstorage
     ${CMAKE_THREAD_LIBS_INIT}
     ${LIBUNWIND_LIBRARIES}
     pthread rt dl)

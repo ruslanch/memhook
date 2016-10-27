@@ -16,7 +16,7 @@ namespace memhook
 class LevelDBStorage : public MappedStorage
 {
 public:
-    LevelDBStorage(const std::string &path, std::size_t cache_size_mb = 8);
+    LevelDBStorage(const char *path, std::size_t cache_size_mb = 8);
 
     void Insert(uintptr_t address, std::size_t memsize,
         const boost::chrono::system_clock::time_point &timestamp,
@@ -24,6 +24,8 @@ public:
     bool Erase(uintptr_t address);
     bool UpdateSize(uintptr_t address, std::size_t memsize);
     void Clear();
+    void Flush();
+    std::string GetName() const;
 
 private:
     unique_ptr<leveldb::DB> OpenDB(const leveldb::Options &options,

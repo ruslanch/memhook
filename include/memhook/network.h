@@ -20,6 +20,7 @@ enum NetReqType
     NetReqFetchEnd   = 0x02ad0248,
     NetReqEnd        = 0x00fc33b1,
     NetReqClear      = 0xe5b1f106,
+    NetReqNewStorage = 0xd533fed1,
 };
 
 enum NetResType
@@ -55,13 +56,13 @@ struct NetRequest : NetProtoTag
 
     NetRequest(NetReqType type, uintptr_t address, std::size_t memsize,
                 const boost::chrono::system_clock::time_point &timestamp,
-                const CallStackInfo &a_callstack)
+                const CallStackInfo &a_callstack = CallStackInfo())
             : type(type)
             , traceinfo(address, memsize, timestamp)
             , callstack(a_callstack)
     {}
 
-    NetReqType  type;
+    NetReqType    type;
     TraceInfoBase traceinfo;
     CallStackInfo callstack;
 };

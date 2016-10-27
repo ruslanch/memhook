@@ -17,13 +17,27 @@ namespace
     {
         CallStackInfo &callstack;
 
-        UpdateCallStack(CallStackInfo &callstack)
+        explicit UpdateCallStack(CallStackInfo &callstack)
             : callstack(callstack)
         {}
 
         void operator()(Engine::TraceInfo &traceinfo)
         {
             traceinfo.callstack.swap(callstack);
+        }
+    };
+
+    struct UpdateMemSize
+    {
+        std::size_t newsize;
+
+        explicit UpdateMemSize(std::size_t newsize)
+            : newsize(newsize)
+        {}
+
+        void operator()(Engine::TraceInfo &traceinfo) const
+        {
+            traceinfo.memsize = newsize;
         }
     };
 } // ns
@@ -38,7 +52,7 @@ void Engine::OnInitialize()
     }
     catch (const std::exception &e)
     {
-        PrintErrorMessage("can't create storage: ", e.what());
+        PrintErrorMessage("Can't create storage: ", e.what());
     }
 
     cache_mutex_.Initialize();
@@ -55,7 +69,7 @@ void Engine::OnInitialize()
     }
     catch (const std::exception &e)
     {
-        PrintErrorMessage("can't read cache flush timeout from environment: ", e.what());
+        PrintErrorMessage("Can't read cache flush timeout from environment: ", e.what());
     }
 }
 
@@ -101,7 +115,13 @@ void Engine::Erase(void *ptr)
 
 void Engine::UpdateSize(void *ptr, size_t newsize)
 {
-    if (storage_)
+    MutexLock lock(cache_mutex_);
+    IndexedContainer::iterator iter = cache_.find(reinterpret_cast<uintptr_t>(ptr));
+    if (iter != cache_.end())
+    {
+        cache_.modify(iter, UpdateMemSize(newsize));
+    }
+    else if (storage_)
     {
         storage_->UpdateSize(reinterpret_cast<uintptr_t>(ptr), newsize);
     }
@@ -116,7 +136,7 @@ unique_ptr<MappedStorage> Engine::NewStorage() const
         const char *ipc_port_env = getenv("MEMHOOK_NET_PORT");
         if (ipc_port_env)
             ipc_port = strtoul(ipc_port_env, NULL, 10);
-        return NewNetworkMappedStorageCreator(ipc_name, ipc_port)->New();
+        return NewNetworkMappedStorage(ipc_name, ipc_port);
     }
 
     size_t ipc_size = (8ul << 30); // default 8 Gb
@@ -148,13 +168,13 @@ unique_ptr<MappedStorage> Engine::NewStorage() const
 
     ipc_name = getenv("MEMHOOK_FILE");
     if (ipc_name)
-        return NewMMFMappedStorageCreator(ipc_name, ipc_size)->New();
+        return NewMMFMappedStorage(ipc_name, ipc_size);
 
     ipc_name = getenv("MEMHOOK_SHM_NAME");
     if (!ipc_name)
         ipc_name = MEMHOOK_SHARED_MEMORY;
 
-    return NewSHMMappedStorageCreator(ipc_name, ipc_size)->New();
+    return NewSHMMappedStorage(ipc_name, ipc_size);
 }
 
 void Engine::FlushLocalCache(const boost::chrono::system_clock::time_point &now,
@@ -167,10 +187,17 @@ void Engine::FlushLocalCache(const boost::chrono::system_clock::time_point &now,
 
     if (storage_)
     {
+        std::size_t n = 0;
         BOOST_FOREACH(const TraceInfo &traceinfo, std::make_pair(index1.begin(), iter))
         {
+            ++n;
             storage_->Insert(traceinfo.address, traceinfo.memsize,
                 traceinfo.timestamp, traceinfo.callstack);
+        }
+
+        if (n)
+        {
+            storage_->Flush();
         }
     }
 

@@ -11,14 +11,14 @@ typedef BasicMappedStorage<
         SHMMappingTraits
     > SHMMappedStorage;
 
-unique_ptr<MappedStorage> NewSHMMappedStorage(const char *path, std::size_t size)
+unique_ptr<MappedStorage> NewSHMMappedStorage(const char *name, std::size_t size)
 {
-    return unique_ptr<MappedStorage>(new SHMMappedStorage(path, size));
+    return unique_ptr<MappedStorage>(new SHMMappedStorage(name, size));
 }
 
-unique_ptr<MappedStorageCreator> NewSHMMappedStorageCreator(const char *path, std::size_t size)
+unique_ptr<MappedStorageCreator> NewSHMMappedStorageCreator(const char *name, std::size_t size)
 {
-    return unique_ptr<MappedStorageCreator>(new BasicMappedStorageCreator<SHMMappedStorage>(path, size));
+    return unique_ptr<MappedStorageCreator>(new BasicMappedStorageCreator<SHMMappedStorage>(name, size));
 }
 
 } // memhook

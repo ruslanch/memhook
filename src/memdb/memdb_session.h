@@ -49,6 +49,7 @@ private:
     void OnInsert(const TraceInfoBase &traceinfo, const CallStackInfo &callstack);
     void OnErase(const TraceInfoBase &traceinfo);
     void OnUpdateSize(const TraceInfoBase &traceinfo);
+    void OnNewStorage(const uintptr_t pid);
 
     boost::asio::ip::tcp::socket     socket_;
     boost::asio::streambuf           sbuf_;

@@ -11,7 +11,7 @@ class MappedStorageCreator : noncopyable
 {
 public:
     virtual ~MappedStorageCreator() {}
-    virtual unique_ptr<MappedStorage> New() const = 0;
+    virtual unique_ptr<MappedStorage> New(uintptr_t guide = 0) const = 0;
 };
 
 unique_ptr<MappedStorageCreator> NewMMFMappedStorageCreator(const char *path, std::size_t size);
