@@ -9,17 +9,20 @@ add_definitions(
     -fvisibility=hidden)
 
 add_library(memhook SHARED
+    boost_error_code.cpp
+    boost_chrono.cpp
     static_buf_alloc.cpp
+    dl_functions.cpp
+    dl_fcn_hook.cpp
     no_hook.cpp
-    error_code.cpp
-    chrono.cpp
-    error_msg.cpp
-    mapped_storage.cpp
-    network_storage.cpp
-    callstack.cpp
+    thread.cpp
+    utils.cpp
+    callstack_unwinder.cpp
+    engine.cpp
     memhook.cpp)
 
 target_link_libraries(memhook LINK_PRIVATE
+    memstorage
     ${CMAKE_THREAD_LIBS_INIT}
     ${LIBUNWIND_LIBRARIES}
     pthread rt dl)

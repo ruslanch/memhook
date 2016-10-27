@@ -31,3 +31,7 @@ fi
 if [ -z "$LIBUNWIND_BUILD_ROOT" ]; then
   LIBUNWIND_BUILD_ROOT="$BUILD_ROOT/libunwind"
 fi
+
+if [ -z "$LEVELDB_BUILD_ROOT" ]; then
+    LEVELDB_BUILD_ROOT="$BUILD_ROOT/leveldb"
+fi

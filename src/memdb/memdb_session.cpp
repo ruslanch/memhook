@@ -1,108 +1,125 @@
-#include "memdb_session.hpp"
-#include <memhook/network.ipp>
+#include "memdb_session.h"
+
+#include <memhook/serialization.h>
+
 #include <boost/bind.hpp>
 
-namespace memhook {
+namespace memhook
+{
 
-memdb_session::memdb_session(const boost::shared_ptr<mapped_storage> &storage,
+MemDBSession::MemDBSession(const shared_ptr<MappedStorageCreator> &storage_creator,
             boost::asio::io_service& io_service)
     : socket_(io_service)
     , sbuf_()
-    , storage_(storage) {}
+    , storage_creator_(storage_creator)
+    , storage_()
+{}
 
-void memdb_session::start() {
-    const std::size_t outbound_size = sizeof(net_proto_outbound);
+void MemDBSession::Start()
+{
+    storage_ = storage_creator_->New();
+
+    const std::size_t outbound_size = sizeof(NetProtoOutbound);
     boost::asio::async_read(socket_, sbuf_, boost::asio::transfer_at_least(outbound_size),
-        boost::bind(&memdb_session::on_read_complete, shared_from_this(),
-                parsing_callback(boost::bind(&memdb_session::parse_outbound, this)),
+        boost::bind(&MemDBSession::OnReadComplete, shared_from_this(),
+                ParsingCallback(boost::bind(&MemDBSession::ParseOutbound, this)),
                 boost::asio::placeholders::error)
     );
 }
 
-void memdb_session::on_read_complete(const parsing_callback &callback,
-        const boost::system::error_code& e) {
-    if (e) {
+void MemDBSession::OnReadComplete(const ParsingCallback &callback,
+        const boost::system::error_code& e)
+{
+    if (e)
+    {
         std::cout << e.message() << std::endl;
         return;
     }
 
-    parsing_info parsing_info = callback();
-    if (parsing_info.size == 0) {
+    ParsingInfo parsing_info = callback();
+    if (parsing_info.size == 0)
+    {
         std::cout << "parsing_info.size=0, close connection" << std::endl;
         return;
     }
 
     boost::asio::async_read(socket_, sbuf_, boost::asio::transfer_exactly(parsing_info.size),
-        boost::bind(&memdb_session::on_read_complete, shared_from_this(),
-                parsing_callback(boost::bind(parsing_info.callback, this)),
+        boost::bind(&MemDBSession::OnReadComplete, shared_from_this(),
+                ParsingCallback(boost::bind(parsing_info.callback, this)),
                 boost::asio::placeholders::error)
     );
 }
 
-memdb_session::parsing_info memdb_session::parse_outbound() {
+MemDBSession::ParsingInfo MemDBSession::ParseOutbound()
+{
     boost::asio::const_buffer inputbuf = boost::asio::buffer(sbuf_.data());
     std::size_t  bytes_inputbuf = boost::asio::buffer_size(inputbuf);
 
-    net_proto_outbound outbound;
-    read(inputbuf, outbound);
+    NetProtoOutbound outbound;
+    serialization::Read(inputbuf, outbound);
 
     std::size_t bytes_read = bytes_inputbuf - boost::asio::buffer_size(inputbuf);
     sbuf_.consume(bytes_read);
     bytes_inputbuf -= bytes_read;
     if (bytes_inputbuf < outbound.size)
-        return parsing_info(outbound.size, &memdb_session::parse_inbound);
-    return parse_inbound();
+        return ParsingInfo(outbound.size - bytes_inputbuf, &MemDBSession::ParseInbound);
+    return ParseInbound();
 }
 
-memdb_session::parsing_info memdb_session::parse_inbound() {
+MemDBSession::ParsingInfo MemDBSession::ParseInbound()
+{
     boost::asio::const_buffer inputbuf = boost::asio::buffer(sbuf_.data());
     std::size_t  bytes_inputbuf = boost::asio::buffer_size(inputbuf);
 
-    net_request request;
-    read(inputbuf, request);
-    if (!do_handle(request))
-        memdb_session::parsing_info(0, NULL);
+    NetRequest request;
+    serialization::Read(inputbuf, request);
+    if (!HandleNetRequest(request))
+        return MemDBSession::ParsingInfo(0, NULL);
 
     std::size_t bytes_read = bytes_inputbuf - boost::asio::buffer_size(inputbuf);
     sbuf_.consume(bytes_read);
     bytes_inputbuf -= bytes_read;
 
-    if (bytes_inputbuf < sizeof(net_proto_outbound))
-        return parsing_info(sizeof(net_proto_outbound), &memdb_session::parse_outbound);
-    return parse_outbound();
+    if (bytes_inputbuf < sizeof(NetProtoOutbound))
+        return ParsingInfo(sizeof(NetProtoOutbound), &MemDBSession::ParseOutbound);
+    return ParseOutbound();
 }
 
-bool memdb_session::do_handle(net_request &request) {
-    switch (request.type) {
-        case net_req_insert:
-            do_insert(request.traceinfo, request.callstack);
+bool MemDBSession::HandleNetRequest(NetRequest &request)
+{
+    switch (request.type)
+    {
+        case NetReqInsert:
+            OnInsert(request.traceinfo, request.callstack);
             return true;
-        case net_req_erase:
-            do_erase(request.traceinfo);
+        case NetReqErase:
+            OnErase(request.traceinfo);
             return true;
-        case net_req_upd_size:
-            do_upd_size(request.traceinfo);
+        case NetReqUpdateSize:
+            OnUpdateSize(request.traceinfo);
             return true;
-        case net_req_unknown:
-        case net_req_fetch:
-        case net_req_fetch_end:
-        case net_req_end:
+        case NetReqUnknown:
+        case NetReqFetch:
+        case NetReqFetchEnd:
+        case NetReqEnd:
             break;
     }
     return false;
 }
 
-void memdb_session::do_insert(const traceinfo_base &traceinfo,
-        callstack_container &callstack) {
-    storage_->insert(traceinfo.address, traceinfo.memsize, traceinfo.timestamp, callstack);
+void MemDBSession::OnInsert(const TraceInfoBase &traceinfo, const CallStackInfo &callstack)
+{
+    storage_->Insert(traceinfo.address, traceinfo.memsize, traceinfo.timestamp, callstack);
 }
 
-void memdb_session::do_erase(const traceinfo_base &traceinfo) {
-    storage_->erase(traceinfo.address);
+void MemDBSession::OnErase(const TraceInfoBase &traceinfo)
+{
+    storage_->Erase(traceinfo.address);
 }
 
-void memdb_session::do_upd_size(const traceinfo_base &traceinfo) {
-    storage_->update_size(traceinfo.address, traceinfo.memsize);
+void MemDBSession::OnUpdateSize(const TraceInfoBase &traceinfo)
+{
+    storage_->UpdateSize(traceinfo.address, traceinfo.memsize);
 }
 
 } // memhook

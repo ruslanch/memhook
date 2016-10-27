@@ -48,8 +48,8 @@ check_cxx_source_compiles("int main() {
     __builtin_extract_return_addr(__builtin_return_address(0)); return 0; }
     " HAVE_GCC_BUILTIN_EXTRACT_RETURN_ADDRESS)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/memhook/sysconfig.hpp.in
-    ${CMAKE_CURRENT_BINARY_DIR}/sysconfig.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/memhook/sysconfig.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/sysconfig.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(src)

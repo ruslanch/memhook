@@ -1,5 +1,8 @@
-#include <memhook/common.hpp>
-#include "mapped_view.hpp"
+#include "common.h"
+#include "mapped_view.h"
+
+#include <memhook/chrono_utils.h>
+
 #include <boost/program_options.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/interprocess/exceptions.hpp>
@@ -7,19 +10,23 @@
 #include <boost/checked_delete.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/chrono/chrono_io.hpp>
 #include <iostream>
 #include <cstdlib>
 
-namespace memhook { namespace detail {
+namespace memhook
+{
+namespace detail
+{
     namespace po = boost::program_options;
 
-    void usage(const po::options_description &options) {
+    void usage(const po::options_description &options)
+    {
         std::cout << "Usage: memview [options] [-m | -f path]\n";
         std::cout << options << std::endl;
     }
 
-    bool parse_command_line_arguments(int argc, char const *argv[], po::variables_map &map) {
+    bool parse_command_line_arguments(int argc, char const *argv[], po::variables_map &map)
+    {
         po::options_description options("Options");
         options.add_options()
             ("help",  "show help message")
@@ -44,7 +51,8 @@ namespace memhook { namespace detail {
             ("get-storage-info", "")
             ("no-lock", po::value<bool>()->implicit_value(true), "");
 
-        try {
+        try
+        {
             po::positional_options_description positional_options;
             positional_options.add("mapped-file", -1);
             po::store(po::command_line_parser(argc, argv)
@@ -53,18 +61,21 @@ namespace memhook { namespace detail {
                 .run(), map);
             po::notify(map);
 
-            if (map.count("help")) {
+            if (map.count("help"))
+            {
                 usage(options);
                 return false;
             }
 
-            if (map.count("shared-memory") && map.count("mapped-file")) {
+            if (map.count("shared-memory") && map.count("mapped-file"))
+            {
                 std::cerr << "can't use `--shared-memory` and `--mapped-file` "
                     "options simultaneously" << std::endl;
                 return false;
             }
         }
-        catch (const po::error &e) {
+        catch (const po::error &e)
+        {
             std::cerr << e.what() << std::endl;
             return false;
         }
@@ -72,17 +83,17 @@ namespace memhook { namespace detail {
         return true;
     }
 
-    boost::chrono::system_clock::time_point time_point_from_string(const std::string &string) {
-        std::istringstream sstream(string);
+    boost::chrono::system_clock::time_point ChronoTimePointFromString(const std::string &string)
+    {
         boost::chrono::system_clock::time_point time_point;
-        sstream >> boost::chrono::time_fmt(boost::chrono::timezone::local, "%Y-%m-%d %H:%M:%S") >> time_point;
+        memhook::ChronoTimePointFromString(string, time_point);
         return time_point;
     }
 
-    boost::chrono::system_clock::duration duration_from_string(const std::string &string) {
-        std::istringstream sstream(string);
+    boost::chrono::system_clock::duration ChronoDurationFromString(const std::string &string)
+    {
         boost::chrono::system_clock::duration duration;
-        sstream >> duration;
+        memhook::ChronoDurationFromString(string, duration);
         return duration;
     }
 
@@ -101,68 +112,76 @@ int main(int argc, char const *argv[])
 
     try
     {
-        boost::tuple<std::string, boost::movelib::unique_ptr<mapped_view_kit> > ctx;
+        std::string path;
+        unique_ptr<MappedViewFactory> factory;
+
+        boost::tuple<std::string, unique_ptr<MappedViewFactory> > ctx;
         if (options_map.count("mapped-file"))
         {
-            boost::get<0>(ctx) = options_map["mapped-file"].as<std::string>();
-            boost::movelib::unique_ptr<mapped_view_kit> kit(make_mmf_view_kit());
-            boost::get<1>(ctx).swap(kit);
+            path = options_map["mapped-file"].as<std::string>();
+            factory = NewMMFMappedViewFactory();
         }
         else
         {
             if (options_map.count("shared-memory"))
-                boost::get<0>(ctx) = options_map["shared-memory"].as<std::string>();
+                path = options_map["shared-memory"].as<std::string>();
             else
-                boost::get<0>(ctx) = MEMHOOK_SHARED_MEMORY;
-            boost::movelib::unique_ptr<mapped_view_kit> kit(make_shm_view_kit());
-            boost::get<1>(ctx).swap(kit);
+                path = MEMHOOK_SHARED_MEMORY;
+            factory = NewSHMMappedViewFactory();
         }
 
-        boost::movelib::unique_ptr<mapped_view> view;
-        if (options_map.count("aggregate")) {
-            view.reset(boost::get<1>(ctx)->make_aggregated_view(boost::get<0>(ctx).c_str()));
-        } else {
-            view.reset(boost::get<1>(ctx)->make_view(boost::get<0>(ctx).c_str()));
+        unique_ptr<MappedView> view;
+        if (options_map.count("aggregate"))
+        {
+            view = factory->NewAggregatedView(path.c_str());
+        }
+        else
+        {
+            view = factory->NewSimpleView(path.c_str());
         }
 
         if (options_map.count("no-lock"))
-            view->no_lock(options_map["no-lock"].as<bool>());
+        {
+            view->SetOptionFlag(MappedView::NoLock, options_map["no-lock"].as<bool>());
+        }
 
-        if (options_map.count("get-storage-info")) {
-            std::cout << "size="   << view->get_size()
-                      << ", free=" << view->get_free_memory() << std::endl;
+        if (options_map.count("get-storage-info"))
+        {
+            std::cout << "size="   << view->GetSize()
+                      << ", free=" << view->GetFreeMemory() << std::endl;
             return EXIT_SUCCESS;
         }
 
         BOOST_FOREACH(const po::variables_map::value_type &op, options_map)
         {
             if (op.first == "sort-by-address")
-                view->sort_by_address(true);
+                view->SetOptionFlag(MappedView::SortByAddress, true);
             else if (op.first == "sort-by-size")
-                view->sort_by_size(true);
+                view->SetOptionFlag(MappedView::SortBySize, true);
             else if (op.first == "sort-by-time")
-                view->sort_by_time(true);
+                view->SetOptionFlag(MappedView::SortByTime, true);
 
             if (op.first == "show-callstack")
-                view->show_callstack(op.second.as<bool>());
+                view->SetOptionFlag(MappedView::ShowCallStack, op.second.as<bool>());
 
             if (op.first == "min-time-from-now")
-                view->add_req(boost::get<1>(ctx)->make_min_time_from_now(duration_from_string(
-                    op.second.as<std::string>())));
+                view->SetOption(factory->NewMinTimeFromNowOption(
+                        ChronoDurationFromString(op.second.as<std::string>())));
             if (op.first == "max-time-from-now")
-                view->add_req(boost::get<1>(ctx)->make_max_time_from_now(duration_from_string(
-                    op.second.as<std::string>())));
+                view->SetOption(factory->NewMaxTimeFromNowOption(
+                        ChronoDurationFromString(op.second.as<std::string>())));
             if (op.first == "min-time")
-                view->add_req(boost::get<1>(ctx)->make_min_time(time_point_from_string(
-                    op.second.as<std::string>())));
+                view->SetOption(factory->NewMinTimeOption(
+                        ChronoTimePointFromString(op.second.as<std::string>())));
             if (op.first == "max-time")
-                view->add_req(boost::get<1>(ctx)->make_max_time(time_point_from_string(
-                    op.second.as<std::string>())));
+                view->SetOption(factory->NewMaxTimeOption(
+                        ChronoTimePointFromString(op.second.as<std::string>())));
             if (op.first == "min-size")
-                view->add_req(boost::get<1>(ctx)->make_min_size(
-                    op.second.as<std::size_t>()));
+                view->SetOption(factory->NewMinSizeOption(
+                        op.second.as<std::size_t>()));
         }
-        view->write(std::cout);
+
+        view->Write(std::cout);
     }
     catch (const boost::interprocess::interprocess_exception &e)
     {

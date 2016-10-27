@@ -1,6 +1,7 @@
-#include "no_hook.hpp"
+#include "no_hook.h"
 
-namespace memhook {
+namespace memhook
+{
 
 __thread ssize_t NoHook::hook_depth_ = 0;
 

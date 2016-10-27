@@ -1,18 +1,18 @@
-#include "interprocess_scoped_lock.hpp"
+#include "interprocess_scoped_lock.h"
 
 namespace memhook {
 namespace mapped_view_detail {
-    void on_ctrlc_signal(int, siginfo_t *, void *) BOOST_NOEXCEPT_OR_NOTHROW;
+    extern void InterruptHandler(int, siginfo_t *, void *);
 } // mapped_view_detail
 
-interprocess_scoped_lock::interprocess_scoped_lock(boost::interprocess::interprocess_mutex &mutex,
+InterprocessScopedLock::InterprocessScopedLock(boost::interprocess::interprocess_mutex &mutex,
         bool no_lock)
-    : signal_block_(SIGINT)
-    , signal_(SIGINT, &mapped_view_detail::on_ctrlc_signal)
+    : signal_lock_(SIGINT)
+    , signal_(SIGINT, &mapped_view_detail::InterruptHandler)
     , plock_()
 {
     if (!no_lock)
-        plock_.reset(new interprocess_mutex_scoped_lock(mutex));
+        plock_.reset(new InterprocessMutexScopedLock(mutex));
 }
 
 } // memhook

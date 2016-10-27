@@ -28,7 +28,7 @@ BOOST_B2_ARGS=toolset="gcc-$TOOLCHAIN_ARCH"
 
 "$BOOST_BUILD_ROOT/b2" -sBOOST_ROOT="$BOOST_BUILD_ROOT" $BOOST_B2_ARGS \
     link=static runtime-link=shared threading=multi variant=$BOOST_BUILD_VARIANT \
-    --host=$TOOLCHAIN_HOST --with-system --with-thread --with-chrono --with-program_options
+    --host=$TOOLCHAIN_HOST --with-system --with-thread --with-chrono --with-filesystem --with-program_options
 
 popd # BOOST_BUILD_ROOT
 popd # BUILD_ROOT

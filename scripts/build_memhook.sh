@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -xe
+
 if [ -z "$SCRIPT_ROOT" ]; then
   SCRIPT_ROOT="$(readlink -f `dirname $0`)"
 fi
@@ -47,6 +49,7 @@ cmake -GNinja $MEMHOOK_ROOT $MEMHOOK_CMAKE_ARGS \
     -DBOOST_ROOT="$BOOST_BUILD_ROOT" \
     -DBOOST_VERSION=$BOOST_VERSION \
     -DLIBUNWIND_ROOT="$LIBUNWIND_BUILD_ROOT" \
+    -DLEVELDB_ROOT="$LEVELDB_BUILD_ROOT" \
     -DCMAKE_BUILD_TYPE=$MEMHOOK_BUILD_TYPE && ninja
 
 popd # MEMHOOK_BUILD_ROOT
