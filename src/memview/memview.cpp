@@ -40,9 +40,13 @@ namespace detail
             ("sort-by-size,s",    "sort by allocation size")
             ("sort-by-address,p", "sort by allocation address")
             ("min-time-from-now", po::value<std::string>(),
-                "minimal time interval from current time to allocation time (10 sec, 30 min, 5 hours)")
+                "minimal time interval from current time to allocation time (10s, 30min, 5h)")
             ("max-time-from-now", po::value<std::string>(),
-                "maximum time interval from current time to allocation time (10 sec, 30 min, 5 hours)")
+                "maximum time interval from current time to allocation time (10s, 30min, 5h)")
+            ("min-time-from-start", po::value<std::string>(),
+                "minimal time interval from program start to allocation time (10s, 30min, 5h)")
+            ("max-time-from-start", po::value<std::string>(),
+                "maximum time interval from program start to allocation time (10s, 30min, 5h)")
             ("min-time,n",        po::value<std::string>(),
                 "minimal allocation datetime (YYYY-MM-DD HH:MM:SS)")
             ("max-time,x",        po::value<std::string>(),
@@ -160,23 +164,27 @@ int main(int argc, char const *argv[])
                 view->SetOptionFlag(MappedView::SortBySize, true);
             else if (op.first == "sort-by-time")
                 view->SetOptionFlag(MappedView::SortByTime, true);
-
-            if (op.first == "show-callstack")
+            else if (op.first == "show-callstack")
                 view->SetOptionFlag(MappedView::ShowCallStack, op.second.as<bool>());
-
-            if (op.first == "min-time-from-now")
+            else if (op.first == "min-time-from-now")
                 view->SetOption(factory->NewMinTimeFromNowOption(
                         ChronoDurationFromString(op.second.as<std::string>())));
-            if (op.first == "max-time-from-now")
+            else if (op.first == "max-time-from-now")
                 view->SetOption(factory->NewMaxTimeFromNowOption(
                         ChronoDurationFromString(op.second.as<std::string>())));
-            if (op.first == "min-time")
+            else if (op.first == "min-time-from-start")
+                view->SetOption(factory->NewMinTimeFromStartOption(
+                        ChronoDurationFromString(op.second.as<std::string>())));
+            else if (op.first == "max-time-from-start")
+                view->SetOption(factory->NewMaxTimeFromStartOption(
+                        ChronoDurationFromString(op.second.as<std::string>())));
+            else if (op.first == "min-time")
                 view->SetOption(factory->NewMinTimeOption(
                         ChronoTimePointFromString(op.second.as<std::string>())));
-            if (op.first == "max-time")
+            else if (op.first == "max-time")
                 view->SetOption(factory->NewMaxTimeOption(
                         ChronoTimePointFromString(op.second.as<std::string>())));
-            if (op.first == "min-size")
+            else if (op.first == "min-size")
                 view->SetOption(factory->NewMinSizeOption(
                         op.second.as<std::size_t>()));
         }

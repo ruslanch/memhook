@@ -20,7 +20,7 @@ struct BasicAggregatedMappedView : BasicMappedView<Traits>
 protected:
     void WriteImpl(std::ostream &os)
     {
-        ForEachDo(boost::get<0>(this->get_indexed_container()), os);
+        ForEachDo(boost::get<1>(this->get_indexed_container()), os);
     }
 
     template <typename Index>

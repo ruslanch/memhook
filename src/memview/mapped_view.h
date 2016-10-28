@@ -45,6 +45,8 @@ public:
     virtual unique_ptr<MappedViewOption> NewMaxTimeOption(const boost::chrono::system_clock::time_point &max_time) = 0;
     virtual unique_ptr<MappedViewOption> NewMinTimeFromNowOption(const boost::chrono::system_clock::duration &min_time) = 0;
     virtual unique_ptr<MappedViewOption> NewMaxTimeFromNowOption(const boost::chrono::system_clock::duration &max_time) = 0;
+    virtual unique_ptr<MappedViewOption> NewMinTimeFromStartOption(const boost::chrono::system_clock::duration &min_time) = 0;
+    virtual unique_ptr<MappedViewOption> NewMaxTimeFromStartOption(const boost::chrono::system_clock::duration &max_time) = 0;
 };
 
 unique_ptr<MappedViewFactory> NewSHMMappedViewFactory();

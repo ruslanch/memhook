@@ -15,7 +15,8 @@ struct BasicSimpleMappedView : BasicMappedView<Traits>
 {
     explicit BasicSimpleMappedView(const char *name) : BasicMappedView<Traits>(name) {}
 protected:
-    void WriteImpl(std::ostream &os) {
+    void WriteImpl(std::ostream &os)
+    {
         if (this->GetOptionFlag(MappedView::SortByAddress))
             ForEachDo(boost::get<0>(this->get_indexed_container()), os);
         else if (this->GetOptionFlag(MappedView::SortBySize))
@@ -25,7 +26,8 @@ protected:
     }
 
     template <typename Index>
-    void ForEachDo(const Index &index, std::ostream &os) const {
+    void ForEachDo(const Index &index, std::ostream &os) const
+    {
         SimpleTraceInfoPrinter printer(*this, os);
         boost::range::find_if(index, !boost::bind<bool>(printer, _1));
     }

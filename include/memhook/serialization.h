@@ -153,7 +153,7 @@ struct WriterImpl {
     template <typename Clock, typename Duration>
     void operator()(const boost::chrono::time_point<Clock, Duration> &val) const
     {
-        CallObj(typename Duration::rep(0));
+        CallObj(val.time_since_epoch().count());
     }
 
 private:

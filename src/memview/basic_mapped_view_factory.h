@@ -20,6 +20,8 @@ struct BasicMappedViewFactory : MappedViewFactory
     unique_ptr<MappedViewOption> NewMaxTimeOption(const boost::chrono::system_clock::time_point &max_time);
     unique_ptr<MappedViewOption> NewMinTimeFromNowOption(const boost::chrono::system_clock::duration &min_time);
     unique_ptr<MappedViewOption> NewMaxTimeFromNowOption(const boost::chrono::system_clock::duration &max_time);
+    unique_ptr<MappedViewOption> NewMinTimeFromStartOption(const boost::chrono::system_clock::duration &min_time);
+    unique_ptr<MappedViewOption> NewMaxTimeFromStartOption(const boost::chrono::system_clock::duration &max_time);
 };
 
 template <typename Traits>
@@ -66,6 +68,20 @@ unique_ptr<MappedViewOption> BasicMappedViewFactory<Traits>::NewMaxTimeFromNowOp
         const boost::chrono::system_clock::duration &max_time)
 {
     return unique_ptr<MappedViewOption>(new MaxTimeFromNowMappedViewOption(max_time));
+}
+
+template <typename Traits>
+unique_ptr<MappedViewOption> BasicMappedViewFactory<Traits>::NewMinTimeFromStartOption(
+        const boost::chrono::system_clock::duration &min_time)
+{
+    return unique_ptr<MappedViewOption>(new MinTimeFromStartMappedViewOption(min_time));
+}
+
+template <typename Traits>
+unique_ptr<MappedViewOption> BasicMappedViewFactory<Traits>::NewMaxTimeFromStartOption(
+        const boost::chrono::system_clock::duration &max_time)
+{
+    return unique_ptr<MappedViewOption>(new MaxTimeFromStartMappedViewOption(max_time));
 }
 
 } // memhook

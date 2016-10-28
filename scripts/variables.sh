@@ -35,3 +35,7 @@ fi
 if [ -z "$LEVELDB_BUILD_ROOT" ]; then
     LEVELDB_BUILD_ROOT="$BUILD_ROOT/leveldb"
 fi
+
+if [ ! -z "$TOOLCHAIN_ROOT" ]; then
+    PATH="$TOOLCHAIN_ROOT/bin:$PATH"
+fi

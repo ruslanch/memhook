@@ -12,7 +12,7 @@ fi
 pushd "$BUILD_ROOT"
 
 if [ -z "$MEMHOOK_BUILD_TYPE" ]; then
-  MEMHOOK_BUILD_TYPE=Debug
+  MEMHOOK_BUILD_TYPE=Release
 fi
 
 

@@ -68,8 +68,8 @@ void MappedViewBase::SetOption(BOOST_RV_REF(unique_ptr<MappedViewOption>) option
 
 bool MappedViewBase::CheckTraceInfoOptions(const TraceInfoBase &tinfo) const
 {
-    return boost::find_if(options_,
-        !boost::bind(&MappedViewOption::Invoke, _1, boost::cref(tinfo))) == options_.end();
+    return (boost::find_if(options_, !boost::bind(&MappedViewOption::Call, _1,
+                                        boost::cref(tinfo))) == options_.end());
 }
 
 bool MappedViewBase::IsInterrupted()

@@ -14,7 +14,7 @@ class MappedViewOption : noncopyable
 {
 public:
     virtual ~MappedViewOption() {}
-    virtual bool Invoke(const TraceInfoBase &tinfo) const = 0;
+    virtual bool Call(const TraceInfoBase &tinfo) const = 0;
 };
 
 class MinSizeMappedViewOption : public MappedViewOption
@@ -24,7 +24,7 @@ public:
     MinSizeMappedViewOption(std::size_t min_size) : min_size(min_size)
     {}
 
-    bool Invoke(const TraceInfoBase &tinfo) const
+    bool Call(const TraceInfoBase &tinfo) const
     {
         return tinfo.memsize >= min_size;
     }
@@ -38,7 +38,7 @@ public:
         : min_time(min_time)
     {}
 
-    bool Invoke(const TraceInfoBase &tinfo) const
+    bool Call(const TraceInfoBase &tinfo) const
     {
         return tinfo.timestamp >= min_time;
     }
@@ -52,7 +52,7 @@ public:
         : max_time(max_time)
     {}
 
-    bool Invoke(const TraceInfoBase &tinfo) const
+    bool Call(const TraceInfoBase &tinfo) const
     {
         return tinfo.timestamp <= max_time;
     }
@@ -68,7 +68,7 @@ public:
             , min_duration(min_duration)
     {}
 
-    bool Invoke(const TraceInfoBase &tinfo) const
+    bool Call(const TraceInfoBase &tinfo) const
     {
         return (current_time - tinfo.timestamp) >= min_duration;
     }
@@ -84,9 +84,47 @@ public:
             , max_duration(max_duration)
     {}
 
-    bool Invoke(const TraceInfoBase &tinfo) const
+    bool Call(const TraceInfoBase &tinfo) const
     {
         return (current_time - tinfo.timestamp) <= max_duration;
+    }
+};
+
+class MinTimeFromStartMappedViewOption : public MappedViewOption
+{
+    mutable boost::chrono::system_clock::time_point start_time;
+    boost::chrono::system_clock::duration           min_duration;
+public:
+    MinTimeFromStartMappedViewOption(const boost::chrono::system_clock::duration &min_duration)
+            : start_time()
+            , min_duration(min_duration)
+    {}
+
+    bool Call(const TraceInfoBase &tinfo) const
+    {
+        if (start_time == boost::chrono::system_clock::time_point())
+            start_time = tinfo.timestamp;
+
+        return (tinfo.timestamp - start_time) >= min_duration;
+    }
+};
+
+class MaxTimeFromStartMappedViewOption : public MappedViewOption
+{
+    mutable boost::chrono::system_clock::time_point start_time;
+    boost::chrono::system_clock::duration           max_duration;
+public:
+    MaxTimeFromStartMappedViewOption(const boost::chrono::system_clock::duration &max_duration)
+            : start_time()
+            , max_duration(max_duration)
+    {}
+
+    bool Call(const TraceInfoBase &tinfo) const
+    {
+        if (start_time == boost::chrono::system_clock::time_point())
+            start_time = tinfo.timestamp;
+
+        return (tinfo.timestamp - start_time) <= max_duration;
     }
 };
 

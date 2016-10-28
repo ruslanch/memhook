@@ -12,7 +12,7 @@ fi
 pushd "$BUILD_ROOT"
 
 if [ -z "$BOOST_BUILD_VARIANT" ]; then
-  BOOST_BUILD_VARIANT=debug
+  BOOST_BUILD_VARIANT=release
 fi
 
 BOOST_URL="http://sourceforge.net/projects/boost/files/boost/$BOOST_VERSION/boost_${BOOST_VERSION//./_}.tar.bz2"
