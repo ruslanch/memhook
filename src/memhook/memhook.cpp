@@ -171,6 +171,57 @@ int posix_memalign(void **memptr, size_t alignment, size_t size)
     return ret;
 }
 
+#if (HAVE_CFREE+0)
+extern "C"
+void cfree(void *mem)
+{
+    MEMHOOK_FUNCTION_PROLOGUE(Init0, cfree(mem));
+
+    if (BOOST_LIKELY(mem != NULL))
+        CatchFree(mem);
+    MEMHOOK_FUNCTION_CALL(cfree(mem));
+}
+#endif
+
+#if (HAVE_ALIGNED_ALLOC+0)
+extern "C"
+void *aligned_alloc(size_t alignment, size_t size)
+{
+    MEMHOOK_FUNCTION_PROLOGUE(Init0, aligned_alloc(alignment, size));
+
+    void *const mem = MEMHOOK_FUNCTION_CALL(aligned_alloc(alignment, size));
+    if (BOOST_LIKELY(mem != NULL))
+        CatchAlloc(mem, size);
+    return mem;
+}
+#endif
+
+#if (HAVE_VALLOC+0)
+extern "C"
+void *valloc(size_t size)
+{
+    MEMHOOK_FUNCTION_PROLOGUE(Init0, valloc(size));
+
+    void *const mem = MEMHOOK_FUNCTION_CALL(valloc(size));
+    if (BOOST_LIKELY(mem != NULL))
+        CatchAlloc(mem, size);
+    return mem;
+}
+#endif
+
+#if (HAVE_PVALLOC+0)
+extern "C"
+void *pvalloc(size_t size)
+{
+    MEMHOOK_FUNCTION_PROLOGUE(Init0, pvalloc(size));
+
+    void *const mem = MEMHOOK_FUNCTION_CALL(pvalloc(size));
+    if (BOOST_LIKELY(mem != NULL))
+        CatchAlloc(mem, size);
+    return mem;
+}
+#endif
+
 extern "C"
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 {
@@ -341,6 +392,9 @@ int getaddrinfo(const char *node, const char *service,
 extern "C"
 int getnameinfo(const struct sockaddr *sa, socklen_t salen,
         char *host, socklen_t hostlen, char *serv, socklen_t servlen,
+#if (__GLIBC_MINOR__ <= 12)
+        unsigned
+#endif
         int flags)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2,

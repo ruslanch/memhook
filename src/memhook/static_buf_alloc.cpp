@@ -25,7 +25,7 @@ void* StaticBufAlloc::malloc(size_t size)
 void* StaticBufAlloc::calloc(size_t nmemb, size_t size)
 {
     const size_t total_size = nmemb * size;
-    void *ptr = malloc(total_size);
+    void *ptr = StaticBufAlloc::malloc(total_size);
     if (ptr == NULL)
         return ptr;
     memset(ptr, 0, total_size);

@@ -60,6 +60,26 @@ public:
     memalign_t         memalign;
     posix_memalign_t   posix_memalign;
 
+#if (HAVE_CFREE+0)
+    typedef void  (*cfree_t)(void *);
+    cfree_t cfree;
+#endif
+
+#if (HAVE_ALIGNED_ALLOC+0)
+    typedef void *(*aligned_alloc_t)(size_t, size_t);
+    aligned_alloc_t aligned_alloc;
+#endif
+
+#if (HAVE_VALLOC+0)
+    typedef void *(*valloc_t)(size_t);
+    valloc_t valloc;
+#endif
+
+#if (HAVE_PVALLOC+0)
+    typedef void *(*pvalloc_t)(size_t);
+    pvalloc_t pvalloc;
+#endif
+
     mmap_t             mmap;
     mmap64_t           mmap64;
     munmap_t           munmap;

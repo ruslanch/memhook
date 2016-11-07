@@ -48,6 +48,26 @@ check_cxx_source_compiles("int main() {
     __builtin_extract_return_addr(__builtin_return_address(0)); return 0; }
     " HAVE_GCC_BUILTIN_EXTRACT_RETURN_ADDRESS)
 
+check_cxx_source_compiles("
+    #include <stdlib.h>
+    int main() { cfree(0); return 0; }
+    " HAVE_CFREE)
+
+check_cxx_source_compiles("
+    #include <stdlib.h>
+    int main() { aligned_alloc(0, 0); return 0; }
+    " HAVE_ALIGNED_ALLOC)
+
+check_cxx_source_compiles("
+    #include <stdlib.h>
+    int main() { valloc(0); return 0; }
+    " HAVE_VALLOC)
+
+check_cxx_source_compiles("
+    #include <malloc.h>
+    int main() { pvalloc(0); return 0; }
+    " HAVE_PVALLOC)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/memhook/sysconfig.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/sysconfig.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})

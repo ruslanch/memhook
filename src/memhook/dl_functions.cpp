@@ -90,6 +90,22 @@ void DLFunctions::Init0()
     DLSymRtldNext(this->memalign, "memalign");
     DLSymRtldNext(this->posix_memalign, "posix_memalign");
 
+#if (HAVE_CFREE+0)
+    DLSymRtldNext(this->cfree, "cfree");
+#endif
+
+#if (HAVE_ALIGNED_ALLOC+0)
+    DLSymRtldNext(this->aligned_alloc, "aligned_alloc");
+#endif
+
+#if (HAVE_VALLOC+0)
+    DLSymRtldNext(this->valloc, "valloc");
+#endif
+
+#if (HAVE_PVALLOC+0)
+    DLSymRtldNext(this->pvalloc, "pvalloc");
+#endif
+
     DLSymRtldNext(this->mmap,   "mmap");
     DLSymRtldNext(this->mmap64, "mmap64");
     DLSymRtldNext(this->munmap, "munmap");

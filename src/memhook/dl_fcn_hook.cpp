@@ -36,6 +36,10 @@ namespace
             MAKE_WRAPPED_FUNCTION_INFO(realloc),
             MAKE_WRAPPED_FUNCTION_INFO(memalign),
             MAKE_WRAPPED_FUNCTION_INFO(posix_memalign),
+            MAKE_WRAPPED_FUNCTION_INFO(cfree),
+            MAKE_WRAPPED_FUNCTION_INFO(aligned_alloc),
+            MAKE_WRAPPED_FUNCTION_INFO(valloc),
+            MAKE_WRAPPED_FUNCTION_INFO(pvalloc),
             MAKE_WRAPPED_FUNCTION_INFO(mmap),
             MAKE_WRAPPED_FUNCTION_INFO(mmap64),
             MAKE_WRAPPED_FUNCTION_INFO(munmap),
@@ -61,6 +65,10 @@ namespace
             MAKE_WRAPPED_FUNCTION_INFO(getpwent_r),
             MAKE_WRAPPED_FUNCTION_INFO(getpwuid_r),
             MAKE_WRAPPED_FUNCTION_INFO(getpwnam_r),
+            MAKE_WRAPPED_FUNCTION_INFO(pthread_create),
+            MAKE_WRAPPED_FUNCTION_INFO(pthread_join),
+            MAKE_WRAPPED_FUNCTION_INFO(pthread_tryjoin_np),
+            MAKE_WRAPPED_FUNCTION_INFO(pthread_timedjoin_np),
             {NULL, NULL}
         };
 

@@ -19,7 +19,7 @@ namespace detail
 {
     namespace po = boost::program_options;
 
-    void usage(const po::options_description &options)
+    void ShowUsage(const po::options_description &options)
     {
         std::cout << "Usage: memview [options] [-m | -f path]\n";
         std::cout << options << std::endl;
@@ -67,7 +67,7 @@ namespace detail
 
             if (map.count("help"))
             {
-                usage(options);
+                ShowUsage(options);
                 return false;
             }
 
