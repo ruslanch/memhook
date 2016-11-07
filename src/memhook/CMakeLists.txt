@@ -28,6 +28,3 @@ target_link_libraries(memhook LINK_PRIVATE
     ${CMAKE_THREAD_LIBS_INIT}
     ${LIBUNWIND_LIBRARIES}
     pthread rt dl)
-
-set_target_properties(memhook
-    PROPERTIES SOVERSION "1.0")

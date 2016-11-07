@@ -39,7 +39,11 @@ public:
     typedef int (*pthread_timedjoin_np_t)(pthread_t thread, void **retval, const struct timespec *abstime);
 
     typedef int (*getaddrinfo_t)(const char *, const char *, const struct addrinfo *, struct addrinfo **);
-    typedef int (*getnameinfo_t)(const struct sockaddr *, socklen_t, char *, socklen_t, char *, socklen_t, int);
+    typedef int (*getnameinfo_t)(const struct sockaddr *, socklen_t, char *, socklen_t, char *, socklen_t,
+#if (__GLIBC_MINOR__ <= 12)
+        unsigned
+#endif
+        int);
     typedef struct hostent *(*gethostbyname_t)(const char *);
     typedef struct hostent *(*gethostbyaddr_t)(const void *, socklen_t, int);
 

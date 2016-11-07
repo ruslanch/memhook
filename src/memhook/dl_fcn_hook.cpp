@@ -12,67 +12,68 @@ namespace
         void       *func;
     };
 
+#define MAKE_WRAPPED_FUNCTION_INFO(function) {#function, reinterpret_cast<void *>(&function)}
+
+    WrappedFunctionInfo s_wrapped_functions[] = {
+        MAKE_WRAPPED_FUNCTION_INFO(free),
+        MAKE_WRAPPED_FUNCTION_INFO(malloc),
+        MAKE_WRAPPED_FUNCTION_INFO(calloc),
+        MAKE_WRAPPED_FUNCTION_INFO(realloc),
+        MAKE_WRAPPED_FUNCTION_INFO(memalign),
+        MAKE_WRAPPED_FUNCTION_INFO(posix_memalign),
+        MAKE_WRAPPED_FUNCTION_INFO(cfree),
+        MAKE_WRAPPED_FUNCTION_INFO(aligned_alloc),
+        MAKE_WRAPPED_FUNCTION_INFO(valloc),
+        MAKE_WRAPPED_FUNCTION_INFO(pvalloc),
+        MAKE_WRAPPED_FUNCTION_INFO(mmap),
+        MAKE_WRAPPED_FUNCTION_INFO(mmap64),
+        MAKE_WRAPPED_FUNCTION_INFO(munmap),
+        MAKE_WRAPPED_FUNCTION_INFO(dlopen),
+        MAKE_WRAPPED_FUNCTION_INFO(dlclose),
+        MAKE_WRAPPED_FUNCTION_INFO(dlsym),
+        MAKE_WRAPPED_FUNCTION_INFO(dlvsym),
+        MAKE_WRAPPED_FUNCTION_INFO(dlerror),
+        MAKE_WRAPPED_FUNCTION_INFO(dladdr),
+        MAKE_WRAPPED_FUNCTION_INFO(dladdr1),
+        MAKE_WRAPPED_FUNCTION_INFO(dlinfo),
+        MAKE_WRAPPED_FUNCTION_INFO(dlmopen),
+        MAKE_WRAPPED_FUNCTION_INFO(dl_iterate_phdr),
+        MAKE_WRAPPED_FUNCTION_INFO(getaddrinfo),
+        MAKE_WRAPPED_FUNCTION_INFO(getnameinfo),
+        MAKE_WRAPPED_FUNCTION_INFO(gethostbyname),
+        MAKE_WRAPPED_FUNCTION_INFO(gethostbyaddr),
+        MAKE_WRAPPED_FUNCTION_INFO(gethostbyname2),
+        MAKE_WRAPPED_FUNCTION_INFO(gethostent_r),
+        MAKE_WRAPPED_FUNCTION_INFO(gethostbyaddr_r),
+        MAKE_WRAPPED_FUNCTION_INFO(gethostbyname_r),
+        MAKE_WRAPPED_FUNCTION_INFO(gethostbyname2_r),
+        MAKE_WRAPPED_FUNCTION_INFO(getpwent_r),
+        MAKE_WRAPPED_FUNCTION_INFO(getpwuid_r),
+        MAKE_WRAPPED_FUNCTION_INFO(getpwnam_r),
+        MAKE_WRAPPED_FUNCTION_INFO(pthread_create),
+        MAKE_WRAPPED_FUNCTION_INFO(pthread_join),
+        MAKE_WRAPPED_FUNCTION_INFO(pthread_tryjoin_np),
+        MAKE_WRAPPED_FUNCTION_INFO(pthread_timedjoin_np),
+        {NULL, NULL}
+    };
+
+#undef MAKE_WRAPPED_FUNCTION_INFO
+
     int dl_iterate_phdr_elfinjection(struct dl_phdr_info *info, size_t size, void *data)
     {
-        if (data != NULL)
-        {
-            if (info->dlpi_name == NULL || strcmp(info->dlpi_name, (const char *)data) != 0)
-                return 0;
-        }
+        // if (data != NULL)
+        // {
+        //     if (info->dlpi_name == NULL || strcmp(info->dlpi_name, (const char *)data) != 0)
+        //         return 0;
+        // }
 
-        if (info->dlpi_name && strstr(info->dlpi_name, MEMHOOK_TARGET_FILE_NAME))
+        if (info->dlpi_name && (strstr(info->dlpi_name, MEMHOOK_TARGET_FILE_NAME) ||
+                                strstr(info->dlpi_name, "/ld-linux")))
         {
             return 0;
         }
 
         const intptr_t page_size = getpagesize();
-
-#define MAKE_WRAPPED_FUNCTION_INFO(function) {#function, reinterpret_cast<void *>(&function)}
-
-        static WrappedFunctionInfo s_wrapped_functions[] = {
-            MAKE_WRAPPED_FUNCTION_INFO(free),
-            MAKE_WRAPPED_FUNCTION_INFO(malloc),
-            MAKE_WRAPPED_FUNCTION_INFO(calloc),
-            MAKE_WRAPPED_FUNCTION_INFO(realloc),
-            MAKE_WRAPPED_FUNCTION_INFO(memalign),
-            MAKE_WRAPPED_FUNCTION_INFO(posix_memalign),
-            MAKE_WRAPPED_FUNCTION_INFO(cfree),
-            MAKE_WRAPPED_FUNCTION_INFO(aligned_alloc),
-            MAKE_WRAPPED_FUNCTION_INFO(valloc),
-            MAKE_WRAPPED_FUNCTION_INFO(pvalloc),
-            MAKE_WRAPPED_FUNCTION_INFO(mmap),
-            MAKE_WRAPPED_FUNCTION_INFO(mmap64),
-            MAKE_WRAPPED_FUNCTION_INFO(munmap),
-            MAKE_WRAPPED_FUNCTION_INFO(dlopen),
-            MAKE_WRAPPED_FUNCTION_INFO(dlclose),
-            MAKE_WRAPPED_FUNCTION_INFO(dlsym),
-            MAKE_WRAPPED_FUNCTION_INFO(dlvsym),
-            MAKE_WRAPPED_FUNCTION_INFO(dlerror),
-            MAKE_WRAPPED_FUNCTION_INFO(dladdr),
-            MAKE_WRAPPED_FUNCTION_INFO(dladdr1),
-            MAKE_WRAPPED_FUNCTION_INFO(dlinfo),
-            MAKE_WRAPPED_FUNCTION_INFO(dlmopen),
-            MAKE_WRAPPED_FUNCTION_INFO(dl_iterate_phdr),
-            MAKE_WRAPPED_FUNCTION_INFO(getaddrinfo),
-            MAKE_WRAPPED_FUNCTION_INFO(getnameinfo),
-            MAKE_WRAPPED_FUNCTION_INFO(gethostbyname),
-            MAKE_WRAPPED_FUNCTION_INFO(gethostbyaddr),
-            MAKE_WRAPPED_FUNCTION_INFO(gethostbyname2),
-            MAKE_WRAPPED_FUNCTION_INFO(gethostent_r),
-            MAKE_WRAPPED_FUNCTION_INFO(gethostbyaddr_r),
-            MAKE_WRAPPED_FUNCTION_INFO(gethostbyname_r),
-            MAKE_WRAPPED_FUNCTION_INFO(gethostbyname2_r),
-            MAKE_WRAPPED_FUNCTION_INFO(getpwent_r),
-            MAKE_WRAPPED_FUNCTION_INFO(getpwuid_r),
-            MAKE_WRAPPED_FUNCTION_INFO(getpwnam_r),
-            MAKE_WRAPPED_FUNCTION_INFO(pthread_create),
-            MAKE_WRAPPED_FUNCTION_INFO(pthread_join),
-            MAKE_WRAPPED_FUNCTION_INFO(pthread_tryjoin_np),
-            MAKE_WRAPPED_FUNCTION_INFO(pthread_timedjoin_np),
-            {NULL, NULL}
-        };
-
-#undef MAKE_WRAPPED_FUNCTION_INFO
 
         const ElfW(Phdr) *phdr = info->dlpi_phdr;
         const ElfW(Phdr) *const phdr_end = phdr + info->dlpi_phnum;
@@ -165,7 +166,8 @@ namespace
         //         map = map->l_next;
         // }
 
-        dl_iterate_phdr(dl_iterate_phdr_elfinjection, (void *)file);
+        ::dl_iterate_phdr(dl_iterate_phdr_elfinjection, NULL);
+
         return h;
     }
 
@@ -176,7 +178,9 @@ namespace
             DLFcnHookSwitch hook_switch;
             h = dlmopen(nsid, file, mode/*, dl_caller*/);
         }
-        dl_iterate_phdr(dl_iterate_phdr_elfinjection, (void *)file);
+
+        ::dl_iterate_phdr(dl_iterate_phdr_elfinjection, NULL);
+
         return h;
     }
 
@@ -257,6 +261,8 @@ void DLFcnHook::OnInitialize()
     SwitchToCustom();
 
     hook_depth_ = 0;
+
+    ::dl_iterate_phdr(dl_iterate_phdr_elfinjection, NULL);
 }
 
 void DLFcnHook::OnDestroy()

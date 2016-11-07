@@ -10,9 +10,6 @@
 namespace memhook
 {
 
-BasicMappedStorageCreatorMixin::BasicMappedStorageCreatorMixin()
-{}
-
 std::string BasicMappedStorageCreatorMixin::GenerateUniquePath(
         const std::string &original_path, uintptr_t guide) const
 {

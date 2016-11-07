@@ -1,41 +1,10 @@
-#include "common.h"
+#include "network_mapped_storage.h"
 
-#include <memhook/network.h>
 #include <memhook/serialization.h>
-#include <memhook/mapped_storage.h>
-#include <memhook/mapped_storage_creator.h>
 
-#include <boost/asio.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/move/unique_ptr.hpp>
 
 namespace memhook {
-
-class NetworkMappedStorage : public MappedStorage
-{
-public:
-    NetworkMappedStorage(const char *host, int port);
-    ~NetworkMappedStorage();
-    void Insert(uintptr_t address, std::size_t memsize,
-        const boost::chrono::system_clock::time_point &timestamp,
-        const CallStackInfo &callstack);
-    bool Erase(uintptr_t address);
-    bool UpdateSize(uintptr_t address, std::size_t memsize);
-    void Clear();
-    void Flush();
-    std::string GetName() const;
-
-private:
-    void Send(const NetRequest &request);
-
-    std::string host_;
-    int         port_;
-
-    boost::asio::ip::tcp::iostream iostream_;
-    boost::asio::streambuf         sbuf_;
-    boost::mutex                   sbuf_mutex_;
-};
 
 NetworkMappedStorage::NetworkMappedStorage(const char *host, int port)
         : host_(host)
@@ -116,31 +85,6 @@ void NetworkMappedStorage::Send(const NetRequest &request)
 unique_ptr<MappedStorage> NewNetworkMappedStorage(const char *host, int port)
 {
     return unique_ptr<MappedStorage>(new NetworkMappedStorage(host, port));
-}
-
-class NetworkMappedStorageCreator : public MappedStorageCreator
-{
-public:
-    NetworkMappedStorageCreator(const char *host, int port);
-    unique_ptr<MappedStorage> New(uintptr_t guide) const;
-
-private:
-    std::string host_;
-    int port_;
-};
-
-NetworkMappedStorageCreator::NetworkMappedStorageCreator(const char *host, int port)
-        : host_(host), port_(port)
-{}
-
-unique_ptr<MappedStorage> NetworkMappedStorageCreator::New(uintptr_t) const
-{
-    return unique_ptr<MappedStorage>(new NetworkMappedStorage(host_.c_str(), port_));
-}
-
-unique_ptr<MappedStorageCreator> NewNetworkMappedStorageCreator(const char *host, int port)
-{
-    return unique_ptr<MappedStorageCreator>(new NetworkMappedStorageCreator(host, port));
 }
 
 } // namespace

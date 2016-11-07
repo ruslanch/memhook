@@ -10,7 +10,7 @@ namespace memhook
 class BasicMappedStorageCreatorMixin
 {
 protected:
-    BasicMappedStorageCreatorMixin();
+    BasicMappedStorageCreatorMixin() {};
 
     std::string GenerateUniquePath(const std::string &original_path, uintptr_t guide) const;
 };
