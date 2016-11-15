@@ -55,7 +55,6 @@ void Engine::OnInitialize()
         PrintErrorMessage("Can't create storage: ", e.what());
     }
 
-    cache_mutex_.Initialize();
     callstack_unwinder_.Initialize();
 
     cache_flush_timeout_ = boost::chrono::seconds(2);
@@ -76,7 +75,6 @@ void Engine::OnInitialize()
 void Engine::OnDestroy()
 {
     FlushLocalCache(boost::chrono::system_clock::now(), boost::chrono::seconds(0));
-    cache_mutex_.Destroy();
     storage_.reset();
 }
 
@@ -87,7 +85,7 @@ void Engine::Insert(void *ptr, size_t memsize)
     CallStackInfo callstack;
     callstack_unwinder_.GetCallStackInfo(callstack, 2);
 
-    MutexLock lock(cache_mutex_);
+    boost::unique_lock<boost::mutex> lock(cache_mutex_);
     std::pair<IndexedContainer::iterator, bool> status =
         cache_.emplace(reinterpret_cast<uintptr_t>(ptr), memsize, now);
     if (status.second)
@@ -100,7 +98,7 @@ void Engine::Insert(void *ptr, size_t memsize)
 
 void Engine::Erase(void *ptr)
 {
-    MutexLock lock(cache_mutex_);
+    boost::unique_lock<boost::mutex> lock(cache_mutex_);
     IndexedContainer::iterator iter = cache_.find(reinterpret_cast<uintptr_t>(ptr));
     if (iter != cache_.end())
     {
@@ -108,14 +106,14 @@ void Engine::Erase(void *ptr)
     }
     else if (storage_)
     {
-        lock.Unlock();
+        lock.unlock();
         storage_->Erase(reinterpret_cast<uintptr_t>(ptr));
     }
 }
 
 void Engine::UpdateSize(void *ptr, size_t newsize)
 {
-    MutexLock lock(cache_mutex_);
+    boost::unique_lock<boost::mutex> lock(cache_mutex_);
     IndexedContainer::iterator iter = cache_.find(reinterpret_cast<uintptr_t>(ptr));
     if (iter != cache_.end())
     {

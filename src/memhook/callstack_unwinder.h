@@ -5,8 +5,8 @@
 
 #include <memhook/callstack.h>
 
-#include <boost/move/unique_ptr.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/thread.hpp>
 
 namespace memhook
 {
@@ -23,14 +23,16 @@ public:
 private:
     class Impl;
 
-    typedef boost::movelib::unique_ptr<Impl> ImplUniquePtr;
+    boost::thread_specific_ptr<Impl> impl_;
 
-    struct ImplPtr : ImplUniquePtr
-    {
-        ImplPtr();
-        explicit ImplPtr(BOOST_RV_REF(ImplUniquePtr) p);
-        ~ImplPtr();
-    } impl_;
+    // typedef boost::movelib::unique_ptr<Impl> ImplUniquePtr;
+
+    // struct ImplPtr : ImplUniquePtr
+    // {
+    //     ImplPtr();
+    //     explicit ImplPtr(BOOST_RV_REF(ImplUniquePtr) p);
+    //     ~ImplPtr();
+    // } impl_;
 };
 
 } // ns memhook

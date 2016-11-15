@@ -2,9 +2,9 @@
 #define MEMHOOK_SRC_MEMHOOK_DLFCN_HOOK_H_INCLUDED
 
 #include "common.h"
-#include "thread.h"
 #include "singleton.h"
 #include "no_hook.h"
+#include <boost/thread/mutex.hpp>
 
 struct dlfcn_hook;
 
@@ -25,17 +25,16 @@ public:
     void SwitchToCustom();
 
 private:
-    Mutex       mutex_;
-    dlfcn_hook *native_;
-    dlfcn_hook *custom_;
-    uint32_t    hook_depth_;
+    boost::mutex  mutex_;
+    dlfcn_hook   *native_;
+    dlfcn_hook   *custom_;
+    uint32_t      hook_depth_;
 };
 
 class DLFcnHookSwitch
 {
-    NoHook                          no_hook_;
-    boost::intrusive_ptr<DLFcnHook> hook_;
-    MutexLock                       lock_;
+    boost::intrusive_ptr<DLFcnHook>  hook_;
+    boost::unique_lock<boost::mutex> lock_;
 public:
     DLFcnHookSwitch();
     ~DLFcnHookSwitch();

@@ -3,7 +3,6 @@
 
 #include "common.h"
 #include "singleton.h"
-#include "thread.h"
 #include "callstack_unwinder.h"
 
 #include <memhook/callstack.h>
@@ -65,7 +64,7 @@ private:
         >
     > IndexedContainer;
 
-    Mutex            cache_mutex_;
+    boost::mutex     cache_mutex_;
     IndexedContainer cache_;
 
     CallStackUnwinder callstack_unwinder_;

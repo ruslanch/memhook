@@ -260,13 +260,15 @@ int munmap(void *addr, size_t length)
 extern "C"
 void *dlopen(const char *file, int mode)
 {
-    MEMHOOK_FUNCTION_CALL_AND_RETURN(Init1, dlopen(file, mode));
+    MEMHOOK_FUNCTION_INIT(Init1);
+    return MEMHOOK_FUNCTION_CALL(dlopen(file, mode));
 }
 
 extern "C"
 void *dlmopen(Lmid_t nsid, const char *file, int mode)
 {
-    MEMHOOK_FUNCTION_CALL_AND_RETURN(Init1, dlmopen(nsid, file, mode));
+    MEMHOOK_FUNCTION_INIT(Init1);
+    return MEMHOOK_FUNCTION_CALL(dlmopen(nsid, file, mode));
 }
 
 extern "C"
@@ -274,9 +276,9 @@ int dlclose(void *handle)
 {
     MEMHOOK_FUNCTION_INIT(Init1);
 
-    NoHook no_hook;
     int ret = MEMHOOK_FUNCTION_CALL(dlclose(handle));
 
+    NoHook no_hook;
     FlushCallStackCache();
 
     return ret;
@@ -414,7 +416,7 @@ struct hostent *gethostbyaddr(const void *addr, socklen_t len, int type)
 }
 
 extern "C"
-struct hostent *gethostbyname2 (const char *name, int af)
+struct hostent *gethostbyname2(const char *name, int af)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2, gethostbyname2(name, af));
 }

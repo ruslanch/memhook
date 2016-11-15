@@ -253,8 +253,6 @@ namespace
 
 void DLFcnHook::OnInitialize()
 {
-    mutex_.Initialize();
-
     native_ = _dlfcn_hook;
     custom_ = &custom_dlfcn_hook;
 
@@ -268,7 +266,6 @@ void DLFcnHook::OnInitialize()
 void DLFcnHook::OnDestroy()
 {
     SwitchToNative();
-    mutex_.Destroy();
 }
 
 void DLFcnHook::SwitchToNative()
@@ -282,13 +279,12 @@ void DLFcnHook::SwitchToCustom()
 }
 
 DLFcnHookSwitch::DLFcnHookSwitch()
-        : no_hook_()
-        , hook_(DLFcnHook::GetInstance())
+        : hook_(DLFcnHook::GetInstance())
         , lock_()
 {
     if (hook_)
     {
-        MutexLock lock(hook_->mutex_);
+        boost::unique_lock<boost::mutex> lock(hook_->mutex_);
         if (!hook_->hook_depth_++)
         {
             lock_.swap(lock);

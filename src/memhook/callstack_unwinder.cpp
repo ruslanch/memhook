@@ -34,7 +34,6 @@ public:
             boost::container::string &procname,
             unw_word_t &offp)
     {
-        boost::unique_lock<boost::mutex> lock(mutex_);
         UnwProcNameInfoMap::const_iterator iter = procname_info_map_.find(ip);
         if (iter != procname_info_map_.end())
         {
@@ -43,14 +42,13 @@ public:
                 shl_path = iter2->second;
             else
                 shl_path = unknown_tag;
-            lock.unlock();
+
             shl_addr = iter->second.shl_addr;
             procname = iter->second.procname;
             offp     = iter->second.offp;
         }
         else
         {
-            lock.unlock();
             boost::array<char, 1024> buf;
             UnwProcNameInfo pni;
             if (unw_get_proc_name(&cursor, buf.data(), buf.size(), &offp) == 0)
@@ -62,7 +60,6 @@ public:
             {
                 pni.procname = unknown_tag;
             }
-            lock.lock();
 
             Dl_info dl_info;
             if (::dladdr(reinterpret_cast<void *>(ip), &dl_info) != 0)
@@ -104,27 +101,12 @@ private:
     typedef boost::unordered_map<unw_word_t, UnwProcNameInfo>          UnwProcNameInfoMap;
     typedef boost::unordered_map<unw_word_t, boost::container::string> UnwShlPathMap;
 
-    boost::mutex       mutex_;
     UnwProcNameInfoMap procname_info_map_;
     UnwShlPathMap      shl_path_map_;
 };
 
-CallStackUnwinder::ImplPtr::ImplPtr()
-    : ImplUniquePtr()
-{}
-
-CallStackUnwinder::ImplPtr::ImplPtr(BOOST_RV_REF(ImplUniquePtr) p)
-    : ImplUniquePtr(boost::move(p))
-{}
-
-CallStackUnwinder::ImplPtr::~ImplPtr()
-{}
-
 void CallStackUnwinder::Initialize()
-{
-    ImplPtr impl(make_unique<Impl>());
-    impl_.swap(impl);
-}
+{}
 
 void CallStackUnwinder::Destroy()
 {
@@ -133,6 +115,11 @@ void CallStackUnwinder::Destroy()
 
 void CallStackUnwinder::GetCallStackInfo(CallStackInfo &callstack, size_t skip_frames)
 {
+    if (!impl_.get())
+    {
+        impl_.reset(new Impl());
+    }
+
     callstack.clear();
     callstack.reserve(16);
 
