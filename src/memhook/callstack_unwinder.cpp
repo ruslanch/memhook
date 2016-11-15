@@ -20,6 +20,13 @@ namespace memhook
 
 static const char unknown_tag[] = "<unknown>";
 
+CallStackUnwinder::ImplPtr::ImplPtr()
+    : ImplTSPtr()
+{}
+
+CallStackUnwinder::ImplPtr::~ImplPtr()
+{}
+
 class CallStackUnwinder::Impl
 {
 public:

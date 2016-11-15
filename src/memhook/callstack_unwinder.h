@@ -23,16 +23,13 @@ public:
 private:
     class Impl;
 
-    boost::thread_specific_ptr<Impl> impl_;
+    typedef boost::thread_specific_ptr<Impl> ImplTSPtr;
 
-    // typedef boost::movelib::unique_ptr<Impl> ImplUniquePtr;
-
-    // struct ImplPtr : ImplUniquePtr
-    // {
-    //     ImplPtr();
-    //     explicit ImplPtr(BOOST_RV_REF(ImplUniquePtr) p);
-    //     ~ImplPtr();
-    // } impl_;
+    struct ImplPtr : ImplTSPtr
+    {
+        ImplPtr();
+        ~ImplPtr();
+    } impl_;
 };
 
 } // ns memhook
