@@ -6,7 +6,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/move/make_unique.hpp>
 #include <boost/array.hpp>
-#include <boost/scope_exit.hpp>
+#include <boost/foreach.hpp>
 
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
@@ -19,6 +19,16 @@ namespace memhook
 {
 
 static const char unknown_tag[] = "<unknown>";
+
+static inline int GetUnwProcNameByIP(unw_addr_space_t as, unw_word_t ip, char *buf, size_t buf_len, unw_word_t *offp)
+{
+    unw_accessors_t *a = unw_get_accessors(as);
+
+    if (a->get_proc_name)
+        return (*a->get_proc_name)(as, ip, buf, buf_len, offp, 0);
+
+    return -1;
+}
 
 CallStackUnwinder::ImplPtr::ImplPtr()
     : ImplTSPtr()
@@ -59,6 +69,61 @@ public:
             boost::array<char, 1024> buf;
             UnwProcNameInfo pni;
             if (unw_get_proc_name(&cursor, buf.data(), buf.size(), &offp) == 0)
+            {
+                pni.procname = buf.data();
+                pni.offp     = offp;
+            }
+            else
+            {
+                pni.procname = unknown_tag;
+            }
+
+            Dl_info dl_info;
+            if (::dladdr(reinterpret_cast<void *>(ip), &dl_info) != 0)
+            {
+                pni.shl_addr = (unw_word_t)dl_info.dli_fbase;
+                if (dl_info.dli_fname == NULL)
+                    dl_info.dli_fname = unknown_tag;
+                shl_path = dl_info.dli_fname;
+                shl_path_map_.emplace(pni.shl_addr, shl_path);
+            }
+            else
+            {
+                shl_path = unknown_tag;
+            }
+
+            shl_addr = pni.shl_addr;
+            procname = pni.procname;
+            offp     = pni.offp;
+
+            procname_info_map_.emplace(ip, pni);
+        }
+    }
+
+   void GetUnwProcInfoByIP(unw_word_t ip,
+            boost::container::string &shl_path,
+            unw_word_t &shl_addr,
+            boost::container::string &procname,
+            unw_word_t &offp)
+    {
+        UnwProcNameInfoMap::const_iterator iter = procname_info_map_.find(ip);
+        if (iter != procname_info_map_.end())
+        {
+            UnwShlPathMap::const_iterator iter2 = shl_path_map_.find(iter->second.shl_addr);
+            if (iter2 != shl_path_map_.end())
+                shl_path = iter2->second;
+            else
+                shl_path = unknown_tag;
+
+            shl_addr = iter->second.shl_addr;
+            procname = iter->second.procname;
+            offp     = iter->second.offp;
+        }
+        else
+        {
+            boost::array<char, 1024> buf;
+            UnwProcNameInfo pni;
+            if (GetUnwProcNameByIP(unw_local_addr_space, ip, buf.data(), buf.size(), &offp) == 0)
             {
                 pni.procname = buf.data();
                 pni.offp     = offp;
@@ -148,17 +213,20 @@ void CallStackUnwinder::GetCallStackInfo(CallStackInfo &callstack, size_t skip_f
         unw_word_t sp = 0;
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
 
-        unw_word_t offp = 0, shl_addr = 0;
-        impl_->GetUnwProcInfo(ip, cursor, shl_path, shl_addr, procname, offp);
         callstack.push_back(CallStackInfoItem());
 
         CallStackInfoItem &item = callstack.back();
-        item.shl_path.swap(shl_path);
-        item.procname.swap(procname);
-        item.shl_addr = shl_addr;
-        item.ip       = ip;
-        item.sp       = sp;
-        item.offp     = offp;
+        callstack.back().ip       = ip;
+        callstack.back().sp       = sp;
+    }
+}
+
+void CallStackUnwinder::GetCallStackInfoUnwindData(CallStackInfo &callstack)
+{
+    BOOST_FOREACH(CallStackInfoItem &item, callstack)
+    {
+        impl_->GetUnwProcInfoByIP(item.ip, item.shl_path, item.shl_addr,
+                item.procname, item.offp);
     }
 }
 

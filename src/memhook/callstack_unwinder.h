@@ -18,6 +18,7 @@ public:
     void Destroy();
 
     void GetCallStackInfo(CallStackInfo &callstack, size_t skip_frames);
+    void GetCallStackInfoUnwindData(CallStackInfo &callstack);
     void FlushCallStackCache();
 
 private:

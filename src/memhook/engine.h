@@ -44,7 +44,7 @@ public:
 private:
     boost::movelib::unique_ptr<MappedStorage> NewStorage() const;
     void FlushLocalCache(const boost::chrono::system_clock::time_point &now,
-        const boost::chrono::seconds &timeout);
+        const boost::chrono::seconds &timeout, bool dump_all);
 
     boost::movelib::unique_ptr<MappedStorage> storage_;
 

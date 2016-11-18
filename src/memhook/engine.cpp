@@ -4,43 +4,10 @@
 #include <memhook/chrono_utils.h>
 #include <memhook/mapped_storage_creator.h>
 
-#include <boost/foreach.hpp>
-
 namespace memhook
 {
 
 extern unique_ptr<MappedStorage> NewNetworkStorage(const char *host, int port);
-
-namespace
-{
-    struct UpdateCallStack
-    {
-        CallStackInfo &callstack;
-
-        explicit UpdateCallStack(CallStackInfo &callstack)
-            : callstack(callstack)
-        {}
-
-        void operator()(Engine::TraceInfo &traceinfo)
-        {
-            traceinfo.callstack.swap(callstack);
-        }
-    };
-
-    struct UpdateMemSize
-    {
-        std::size_t newsize;
-
-        explicit UpdateMemSize(std::size_t newsize)
-            : newsize(newsize)
-        {}
-
-        void operator()(Engine::TraceInfo &traceinfo) const
-        {
-            traceinfo.memsize = newsize;
-        }
-    };
-} // ns
 
 void Engine::OnInitialize()
 {
@@ -74,7 +41,8 @@ void Engine::OnInitialize()
 
 void Engine::OnDestroy()
 {
-    FlushLocalCache(boost::chrono::system_clock::now(), boost::chrono::seconds(0));
+    boost::unique_lock<boost::mutex> lock(cache_mutex_);
+    FlushLocalCache(boost::chrono::system_clock::now(), boost::chrono::seconds(0), true);
     storage_.reset();
 }
 
@@ -90,10 +58,10 @@ void Engine::Insert(void *ptr, size_t memsize)
         cache_.emplace(reinterpret_cast<uintptr_t>(ptr), memsize, now);
     if (status.second)
     {
-        cache_.modify(status.first, UpdateCallStack(callstack));
+        const_cast<TraceInfo &>(*status.first).callstack.swap(callstack);
     }
 
-    FlushLocalCache(now, cache_flush_timeout_);
+    FlushLocalCache(now, cache_flush_timeout_, false);
 }
 
 void Engine::Erase(void *ptr)
@@ -117,7 +85,7 @@ void Engine::UpdateSize(void *ptr, size_t newsize)
     IndexedContainer::iterator iter = cache_.find(reinterpret_cast<uintptr_t>(ptr));
     if (iter != cache_.end())
     {
-        cache_.modify(iter, UpdateMemSize(newsize));
+        const_cast<TraceInfo &>(*iter).memsize = newsize;
     }
     else if (storage_)
     {
@@ -176,21 +144,21 @@ unique_ptr<MappedStorage> Engine::NewStorage() const
 }
 
 void Engine::FlushLocalCache(const boost::chrono::system_clock::time_point &now,
-        const boost::chrono::seconds &timeout)
+        const boost::chrono::seconds &timeout, bool dump_all)
 {
     typedef typename IndexedContainer::template nth_index<1>::type Index1;
     Index1 &index1 = boost::get<1>(cache_);
 
-    const typename Index1::iterator iter = index1.lower_bound(now - timeout);
+    const typename Index1::iterator end = dump_all ? index1.end() : index1.lower_bound(now - timeout);
+    typename Index1::iterator iter = index1.begin();
 
     if (storage_)
     {
         std::size_t n = 0;
-        BOOST_FOREACH(const TraceInfo &traceinfo, std::make_pair(index1.begin(), iter))
+        for (; iter != end && (dump_all || n < 100); ++iter, ++n)
         {
-            ++n;
-            storage_->Insert(traceinfo.address, traceinfo.memsize,
-                traceinfo.timestamp, traceinfo.callstack);
+            callstack_unwinder_.GetCallStackInfoUnwindData(const_cast<TraceInfo &>(*iter).callstack);
+            storage_->Insert(iter->address, iter->memsize, iter->timestamp, iter->callstack);
         }
 
         if (n)
