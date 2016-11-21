@@ -21,10 +21,18 @@ namespace
         MAKE_WRAPPED_FUNCTION_INFO(realloc),
         MAKE_WRAPPED_FUNCTION_INFO(memalign),
         MAKE_WRAPPED_FUNCTION_INFO(posix_memalign),
+#if (HAVE_CFREE+0)
         MAKE_WRAPPED_FUNCTION_INFO(cfree),
+#endif
+#if (HAVE_ALIGNED_ALLOC+0)
         MAKE_WRAPPED_FUNCTION_INFO(aligned_alloc),
+#endif
+#if (HAVE_VALLOC+0)
         MAKE_WRAPPED_FUNCTION_INFO(valloc),
+#endif
+#if (HAVE_PVALLOC+0)
         MAKE_WRAPPED_FUNCTION_INFO(pvalloc),
+#endif
         MAKE_WRAPPED_FUNCTION_INFO(mmap),
         MAKE_WRAPPED_FUNCTION_INFO(mmap64),
         MAKE_WRAPPED_FUNCTION_INFO(munmap),

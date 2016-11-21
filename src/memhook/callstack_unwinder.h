@@ -6,7 +6,7 @@
 #include <memhook/callstack.h>
 
 #include <boost/noncopyable.hpp>
-#include <boost/thread.hpp>
+#include <boost/scoped_ptr.hpp>
 
 namespace memhook
 {
@@ -22,9 +22,11 @@ public:
     void FlushCallStackCache();
 
 private:
+    void CheckImpl();
+
     class Impl;
 
-    typedef boost::thread_specific_ptr<Impl> ImplTSPtr;
+    typedef boost::scoped_ptr<Impl> ImplTSPtr;
 
     struct ImplPtr : ImplTSPtr
     {

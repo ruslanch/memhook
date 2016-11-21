@@ -1,12 +1,16 @@
 #include "callstack_unwinder.h"
 #include "utils.h"
 
-#include <boost/unordered_map.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/move/make_unique.hpp>
 #include <boost/array.hpp>
 #include <boost/foreach.hpp>
+#include <boost/unordered_map.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index/member.hpp>
 
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
@@ -41,8 +45,13 @@ class CallStackUnwinder::Impl
 {
 public:
     Impl()
+        : cache_max_size_(32768)
     {
         MEMHOOK_CHECK_UNW(unw_set_caching_policy(unw_local_addr_space, UNW_CACHE_PER_THREAD));
+
+        const char *cache_max_size = getenv("MEMHOOK_CALLSTACK_UNWINDER_CACHE_SIZE");
+        if (cache_max_size)
+            cache_max_size_ = strtoul(cache_max_size, NULL, 10);
     }
 
     void GetUnwProcInfo(unw_word_t ip, unw_cursor_t cursor,
@@ -51,23 +60,33 @@ public:
             boost::container::string &procname,
             unw_word_t &offp)
     {
+        boost::unique_lock<boost::mutex> lock(procname_info_map_mutex_);
+
         UnwProcNameInfoMap::const_iterator iter = procname_info_map_.find(ip);
         if (iter != procname_info_map_.end())
         {
-            UnwShlPathMap::const_iterator iter2 = shl_path_map_.find(iter->second.shl_addr);
-            if (iter2 != shl_path_map_.end())
-                shl_path = iter2->second;
-            else
-                shl_path = unknown_tag;
+            {
+                boost::unique_lock<boost::mutex> lock2(shl_path_map_mutex_);
+                UnwShlPathMap::const_iterator iter2 = shl_path_map_.find(iter->shl_addr);
+                if (iter2 != shl_path_map_.end())
+                    shl_path = iter2->second;
+                else
+                    shl_path = unknown_tag;
+            }
 
-            shl_addr = iter->second.shl_addr;
-            procname = iter->second.procname;
-            offp     = iter->second.offp;
+            shl_addr = iter->shl_addr;
+            procname = iter->procname;
+            offp     = iter->offp;
+
+            typename UnwProcNameInfoMap::nth_index<1>::type &index = procname_info_map_.get<1>();
+            index.relocate(procname_info_map_.project<1>(iter), index.end());
         }
         else
         {
+            lock.unlock();
+
             boost::array<char, 1024> buf;
-            UnwProcNameInfo pni;
+            UnwProcNameInfo pni(ip);
             if (unw_get_proc_name(&cursor, buf.data(), buf.size(), &offp) == 0)
             {
                 pni.procname = buf.data();
@@ -85,6 +104,8 @@ public:
                 if (dl_info.dli_fname == NULL)
                     dl_info.dli_fname = unknown_tag;
                 shl_path = dl_info.dli_fname;
+
+                boost::unique_lock<boost::mutex> lock2(shl_path_map_mutex_);
                 shl_path_map_.emplace(pni.shl_addr, shl_path);
             }
             else
@@ -96,7 +117,15 @@ public:
             procname = pni.procname;
             offp     = pni.offp;
 
-            procname_info_map_.emplace(ip, pni);
+            lock.lock();
+
+            if (procname_info_map_.size() >= cache_max_size_)
+            {
+                typename UnwProcNameInfoMap::nth_index<1>::type &index = procname_info_map_.get<1>();
+                index.erase(index.begin());
+            }
+
+            procname_info_map_.insert(procname_info_map_.end(), pni);
         }
     }
 
@@ -106,23 +135,33 @@ public:
             boost::container::string &procname,
             unw_word_t &offp)
     {
+        boost::unique_lock<boost::mutex> lock(procname_info_map_mutex_);
+
         UnwProcNameInfoMap::const_iterator iter = procname_info_map_.find(ip);
         if (iter != procname_info_map_.end())
         {
-            UnwShlPathMap::const_iterator iter2 = shl_path_map_.find(iter->second.shl_addr);
-            if (iter2 != shl_path_map_.end())
-                shl_path = iter2->second;
-            else
-                shl_path = unknown_tag;
+            {
+                boost::unique_lock<boost::mutex> lock2(shl_path_map_mutex_);
+                UnwShlPathMap::const_iterator iter2 = shl_path_map_.find(iter->shl_addr);
+                if (iter2 != shl_path_map_.end())
+                    shl_path = iter2->second;
+                else
+                    shl_path = unknown_tag;
+            }
 
-            shl_addr = iter->second.shl_addr;
-            procname = iter->second.procname;
-            offp     = iter->second.offp;
+            shl_addr = iter->shl_addr;
+            procname = iter->procname;
+            offp     = iter->offp;
+
+            typename UnwProcNameInfoMap::nth_index<1>::type &index = procname_info_map_.get<1>();
+            index.relocate(procname_info_map_.project<1>(iter), index.end());
         }
         else
         {
+            lock.unlock();
+
             boost::array<char, 1024> buf;
-            UnwProcNameInfo pni;
+            UnwProcNameInfo pni(ip);
             if (GetUnwProcNameByIP(unw_local_addr_space, ip, buf.data(), buf.size(), &offp) == 0)
             {
                 pni.procname = buf.data();
@@ -140,6 +179,8 @@ public:
                 if (dl_info.dli_fname == NULL)
                     dl_info.dli_fname = unknown_tag;
                 shl_path = dl_info.dli_fname;
+
+                boost::unique_lock<boost::mutex> lock2(shl_path_map_mutex_);
                 shl_path_map_.emplace(pni.shl_addr, shl_path);
             }
             else
@@ -151,7 +192,15 @@ public:
             procname = pni.procname;
             offp     = pni.offp;
 
-            procname_info_map_.emplace(ip, pni);
+            lock.lock();
+
+            if (procname_info_map_.size() >= cache_max_size_)
+            {
+                typename UnwProcNameInfoMap::nth_index<1>::type &index = procname_info_map_.get<1>();
+                index.erase(index.begin());
+            }
+
+            procname_info_map_.insert(procname_info_map_.end(), pni);
         }
     }
 
@@ -164,21 +213,42 @@ private:
     struct UnwProcNameInfo
     {
         boost::container::string procname;
+        unw_word_t ip;
         unw_word_t offp;
         unw_word_t shl_addr;
-        UnwProcNameInfo() : procname(), offp(), shl_addr()
+        explicit UnwProcNameInfo(unw_word_t ip = 0)
+            : procname(), ip(ip), offp(), shl_addr()
         {}
     };
 
-    typedef boost::unordered_map<unw_word_t, UnwProcNameInfo>          UnwProcNameInfoMap;
+    typedef boost::multi_index_container<
+        UnwProcNameInfo,
+        boost::multi_index::indexed_by<
+            boost::multi_index::ordered_unique<
+                boost::multi_index::member<UnwProcNameInfo, unw_word_t, &UnwProcNameInfo::ip>
+            >,
+            boost::multi_index::sequenced<>
+        >
+    > UnwProcNameInfoMap;
+
     typedef boost::unordered_map<unw_word_t, boost::container::string> UnwShlPathMap;
+
+    std::size_t cache_max_size_;
+
+    boost::mutex procname_info_map_mutex_;
+    boost::mutex shl_path_map_mutex_;
 
     UnwProcNameInfoMap procname_info_map_;
     UnwShlPathMap      shl_path_map_;
 };
 
 void CallStackUnwinder::Initialize()
-{}
+{
+    if (!impl_.get())
+    {
+        impl_.reset(new Impl());
+    }
+}
 
 void CallStackUnwinder::Destroy()
 {
@@ -187,11 +257,6 @@ void CallStackUnwinder::Destroy()
 
 void CallStackUnwinder::GetCallStackInfo(CallStackInfo &callstack, size_t skip_frames)
 {
-    if (!impl_.get())
-    {
-        impl_.reset(new Impl());
-    }
-
     callstack.clear();
     callstack.reserve(16);
 

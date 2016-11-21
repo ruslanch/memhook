@@ -155,7 +155,7 @@ void Engine::FlushLocalCache(const boost::chrono::system_clock::time_point &now,
     if (storage_)
     {
         std::size_t n = 0;
-        for (; iter != end && (dump_all || n < 100); ++iter, ++n)
+        for (; iter != end && (dump_all || n < 256); ++iter, ++n)
         {
             callstack_unwinder_.GetCallStackInfoUnwindData(const_cast<TraceInfo &>(*iter).callstack);
             storage_->Insert(iter->address, iter->memsize, iter->timestamp, iter->callstack);

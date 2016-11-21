@@ -260,15 +260,13 @@ int munmap(void *addr, size_t length)
 extern "C"
 void *dlopen(const char *file, int mode)
 {
-    MEMHOOK_FUNCTION_INIT(Init1);
-    return MEMHOOK_FUNCTION_CALL(dlopen(file, mode));
+    MEMHOOK_FUNCTION_CALL_AND_RETURN(Init1, dlopen(file, mode));
 }
 
 extern "C"
 void *dlmopen(Lmid_t nsid, const char *file, int mode)
 {
-    MEMHOOK_FUNCTION_INIT(Init1);
-    return MEMHOOK_FUNCTION_CALL(dlmopen(nsid, file, mode));
+    MEMHOOK_FUNCTION_CALL_AND_RETURN(Init1, dlmopen(nsid, file, mode));
 }
 
 extern "C"
@@ -332,13 +330,13 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
     MEMHOOK_FUNCTION_PROLOGUE(Init2, pthread_create(thread, attr, start_routine, arg));
 
     const int ret = MEMHOOK_FUNCTION_CALL(pthread_create(thread, attr, start_routine, arg));
-    if (ret == 0)
-    {
-        void  *stack_addr = NULL;
-        size_t stack_size = 0;
-        if (GetThreadStackInfo(*thread, &stack_addr, &stack_size) == 0)
-            CatchAlloc(stack_addr, stack_size);
-    }
+    // if (ret == 0)
+    // {
+    //     void  *stack_addr = NULL;
+    //     size_t stack_size = 0;
+    //     if (GetThreadStackInfo(*thread, &stack_addr, &stack_size) == 0)
+    //         CatchAlloc(stack_addr, stack_size);
+    // }
     return ret;
 }
 
@@ -347,12 +345,12 @@ int pthread_join(pthread_t thread, void **retval)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init2, pthread_join(thread, retval));
 
-    void  *stack_addr = NULL;
-    size_t stack_size = 0;
-    const int stack_ret = GetThreadStackInfo(thread, &stack_addr, &stack_size);
+    // void  *stack_addr = NULL;
+    // size_t stack_size = 0;
+    // const int stack_ret = GetThreadStackInfo(thread, &stack_addr, &stack_size);
     const int tjoin_ret = MEMHOOK_FUNCTION_CALL(pthread_join(thread, retval));
-    if (stack_ret == 0 && tjoin_ret == 0)
-        CatchFree(stack_addr);
+    // if (stack_ret == 0 && tjoin_ret == 0)
+    //     CatchFree(stack_addr);
     return tjoin_ret;
 }
 
@@ -361,12 +359,12 @@ int pthread_tryjoin_np(pthread_t thread, void **retval)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init2, pthread_tryjoin_np(thread, retval));
 
-    void  *stack_addr = NULL;
-    size_t stack_size = 0;
-    const int stack_ret = GetThreadStackInfo(thread, &stack_addr, &stack_size);
+    // void  *stack_addr = NULL;
+    // size_t stack_size = 0;
+    // const int stack_ret = GetThreadStackInfo(thread, &stack_addr, &stack_size);
     const int tjoin_ret = MEMHOOK_FUNCTION_CALL(pthread_tryjoin_np(thread, retval));
-    if (stack_ret == 0 && tjoin_ret == 0)
-        CatchFree(stack_addr);
+    // if (stack_ret == 0 && tjoin_ret == 0)
+    //     CatchFree(stack_addr);
     return tjoin_ret;
 }
 
@@ -375,12 +373,12 @@ int pthread_timedjoin_np(pthread_t thread, void **retval, const struct timespec 
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init2, pthread_timedjoin_np(thread, retval, abstime));
 
-    void  *stack_addr = NULL;
-    size_t stack_size = 0;
-    const int stack_ret = GetThreadStackInfo(thread, &stack_addr, &stack_size);
+    // void  *stack_addr = NULL;
+    // size_t stack_size = 0;
+    // const int stack_ret = GetThreadStackInfo(thread, &stack_addr, &stack_size);
     const int tjoin_ret = MEMHOOK_FUNCTION_CALL(pthread_timedjoin_np(thread, retval, abstime));
-    if (stack_ret == 0 && tjoin_ret == 0)
-        CatchFree(stack_addr);
+    // if (stack_ret == 0 && tjoin_ret == 0)
+    //     CatchFree(stack_addr);
     return tjoin_ret;
 }
 
