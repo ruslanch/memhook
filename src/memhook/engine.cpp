@@ -37,6 +37,13 @@ void Engine::OnInitialize()
     {
         PrintErrorMessage("Can't read cache flush timeout from environment: ", e.what());
     }
+
+    cache_flush_max_items_ = 200;
+    const char *cache_flush_max_items = getenv("MEMHOOK_CACHE_FLUSH_MAX_ITEMS");
+    if (cache_flush_max_items)
+    {
+        cache_flush_max_items_ = strtoul(cache_flush_max_items, NULL, 10);
+    }
 }
 
 void Engine::OnDestroy()
@@ -155,7 +162,7 @@ void Engine::FlushLocalCache(const boost::chrono::system_clock::time_point &now,
     if (storage_)
     {
         std::size_t n = 0;
-        for (; iter != end && (dump_all || n < 256); ++iter, ++n)
+        for (; iter != end && (dump_all || n < cache_flush_max_items_); ++iter, ++n)
         {
             callstack_unwinder_.GetCallStackInfoUnwindData(const_cast<TraceInfo &>(*iter).callstack);
             storage_->Insert(iter->address, iter->memsize, iter->timestamp, iter->callstack);

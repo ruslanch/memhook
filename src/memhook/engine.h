@@ -69,6 +69,7 @@ private:
     CallStackUnwinder callstack_unwinder_;
 
     boost::chrono::seconds cache_flush_timeout_;
+    std::size_t            cache_flush_max_items_;
 };
 
 } // ns memhook
