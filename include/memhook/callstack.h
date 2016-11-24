@@ -4,8 +4,7 @@
 #include <memhook/common.h>
 
 #include <boost/container/string.hpp>
-#include <boost/container/vector.hpp>
-#include <boost/container/small_vector.hpp>
+#include <boost/container/list.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
 
 namespace memhook
@@ -74,7 +73,7 @@ struct CallStackInfoItem
     BOOST_COPYABLE_AND_MOVABLE(CallStackInfoItem);
 };
 
-typedef boost::container::vector<CallStackInfoItem> CallStackInfo;
+typedef boost::container::list<CallStackInfoItem> CallStackInfo;
 
 } // memhook
 

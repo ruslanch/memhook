@@ -5,6 +5,7 @@
 #include <memhook/traceinfo.h>
 
 #include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/container/vector.hpp>
 #include <boost/unordered_map.hpp>
 
 namespace memhook

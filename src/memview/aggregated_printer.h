@@ -5,18 +5,16 @@
 
 #include <boost/spirit/include/karma.hpp>
 #include <boost/spirit/include/karma_stream.hpp>
-#include <boost/container/vector.hpp>
+#include <boost/container/list.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/range/numeric.hpp>
 
 namespace memhook {
 
-typedef boost::container::vector<TraceInfoCallStackItem>
-    AggregatedCallstack;
+typedef boost::container::vector<TraceInfoCallStackItem> AggregatedCallstack;
 
 struct AggregatedTraceInfo
 {
@@ -26,10 +24,10 @@ struct AggregatedTraceInfo
 
     template <typename A>
     AggregatedTraceInfo(std::size_t memsize, std::size_t times,
-                const boost::container::vector<TraceInfoCallStackItem, A> &a_callstack)
-            : memsize(memsize)
-            , times(times)
-            , callstack(a_callstack.begin(), a_callstack.end())
+            const boost::container::vector<TraceInfoCallStackItem, A> &a_callstack)
+        : memsize(memsize)
+        , times(times)
+        , callstack(a_callstack.begin(), a_callstack.end())
     {}
 };
 

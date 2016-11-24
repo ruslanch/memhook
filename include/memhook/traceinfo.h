@@ -9,6 +9,7 @@
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/adapt_adt.hpp>
 #include <boost/chrono/system_clocks.hpp>
+#include <boost/container/vector.hpp>
 
 namespace memhook
 {
@@ -79,7 +80,6 @@ struct BasicTraceInfo : TraceInfoBase
             : TraceInfoBase(address, memsize, timestamp)
             , callstack(allocator)
     {
-        callstack.reserve(a_callstack.size());
         boost::transform(a_callstack, std::back_inserter(callstack), TraceInfoCallStackItemBuilder());
     }
 

@@ -6,6 +6,7 @@
 
 #include <boost/container/string.hpp>
 #include <boost/container/vector.hpp>
+#include <boost/container/list.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/fusion/include/for_each.hpp>
 #include <boost/fusion/include/is_sequence.hpp>
@@ -133,6 +134,12 @@ struct WriterImpl {
 
     template <typename T, typename A>
     void operator()(const boost::container::vector<T, A> &val) const
+    {
+        CallSeq(val);
+    }
+
+    template <typename T, typename A>
+    void operator()(const boost::container::list<T, A> &val) const
     {
         CallSeq(val);
     }
@@ -269,6 +276,12 @@ public:
 
     template <typename T, typename A>
     void operator()(boost::container::vector<T, A> &val) const
+    {
+        CallSeq(val);
+    }
+
+    template <typename T, typename A>
+    void operator()(boost::container::list<T, A> &val) const
     {
         CallSeq(val);
     }

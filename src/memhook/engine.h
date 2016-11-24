@@ -70,6 +70,14 @@ private:
 
     boost::chrono::seconds cache_flush_timeout_;
     std::size_t            cache_flush_max_items_;
+
+    enum CallStackUnwindProcInfoPolicy
+    {
+        UnwindCallStackWhen,
+        FlushLocalCacheWhen,
+    };
+
+    CallStackUnwindProcInfoPolicy getprocinfo_policy_;
 };
 
 } // ns memhook

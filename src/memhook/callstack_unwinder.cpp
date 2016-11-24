@@ -45,10 +45,8 @@ class CallStackUnwinder::Impl
 {
 public:
     Impl()
-        : cache_max_size_(32768)
+        : cache_max_size_(8192)
     {
-        MEMHOOK_CHECK_UNW(unw_set_caching_policy(unw_local_addr_space, UNW_CACHE_PER_THREAD));
-
         const char *cache_max_size = getenv("MEMHOOK_CALLSTACK_UNWINDER_CACHE_SIZE");
         if (cache_max_size)
             cache_max_size_ = strtoul(cache_max_size, NULL, 10);
@@ -60,13 +58,10 @@ public:
             boost::container::string &procname,
             unw_word_t &offp)
     {
-        boost::unique_lock<boost::mutex> lock(procname_info_map_mutex_);
-
         UnwProcNameInfoMap::const_iterator iter = procname_info_map_.find(ip);
         if (iter != procname_info_map_.end())
         {
             {
-                boost::unique_lock<boost::mutex> lock2(shl_path_map_mutex_);
                 UnwShlPathMap::const_iterator iter2 = shl_path_map_.find(iter->shl_addr);
                 if (iter2 != shl_path_map_.end())
                     shl_path = iter2->second;
@@ -83,8 +78,6 @@ public:
         }
         else
         {
-            lock.unlock();
-
             boost::array<char, 1024> buf;
             UnwProcNameInfo pni(ip);
             if (unw_get_proc_name(&cursor, buf.data(), buf.size(), &offp) == 0)
@@ -105,7 +98,6 @@ public:
                     dl_info.dli_fname = unknown_tag;
                 shl_path = dl_info.dli_fname;
 
-                boost::unique_lock<boost::mutex> lock2(shl_path_map_mutex_);
                 shl_path_map_.emplace(pni.shl_addr, shl_path);
             }
             else
@@ -116,8 +108,6 @@ public:
             shl_addr = pni.shl_addr;
             procname = pni.procname;
             offp     = pni.offp;
-
-            lock.lock();
 
             if (procname_info_map_.size() >= cache_max_size_)
             {
@@ -135,13 +125,10 @@ public:
             boost::container::string &procname,
             unw_word_t &offp)
     {
-        boost::unique_lock<boost::mutex> lock(procname_info_map_mutex_);
-
         UnwProcNameInfoMap::const_iterator iter = procname_info_map_.find(ip);
         if (iter != procname_info_map_.end())
         {
             {
-                boost::unique_lock<boost::mutex> lock2(shl_path_map_mutex_);
                 UnwShlPathMap::const_iterator iter2 = shl_path_map_.find(iter->shl_addr);
                 if (iter2 != shl_path_map_.end())
                     shl_path = iter2->second;
@@ -158,8 +145,6 @@ public:
         }
         else
         {
-            lock.unlock();
-
             boost::array<char, 1024> buf;
             UnwProcNameInfo pni(ip);
             if (GetUnwProcNameByIP(unw_local_addr_space, ip, buf.data(), buf.size(), &offp) == 0)
@@ -180,7 +165,6 @@ public:
                     dl_info.dli_fname = unknown_tag;
                 shl_path = dl_info.dli_fname;
 
-                boost::unique_lock<boost::mutex> lock2(shl_path_map_mutex_);
                 shl_path_map_.emplace(pni.shl_addr, shl_path);
             }
             else
@@ -191,8 +175,6 @@ public:
             shl_addr = pni.shl_addr;
             procname = pni.procname;
             offp     = pni.offp;
-
-            lock.lock();
 
             if (procname_info_map_.size() >= cache_max_size_)
             {
@@ -207,6 +189,9 @@ public:
     void FlushUnwCache()
     {
         unw_flush_cache(unw_local_addr_space, 0, 0);
+
+        procname_info_map_.clear();
+        shl_path_map_.clear();
     }
 
 private:
@@ -235,19 +220,24 @@ private:
 
     std::size_t cache_max_size_;
 
-    boost::mutex procname_info_map_mutex_;
-    boost::mutex shl_path_map_mutex_;
-
     UnwProcNameInfoMap procname_info_map_;
     UnwShlPathMap      shl_path_map_;
 };
 
 void CallStackUnwinder::Initialize()
 {
-    if (!impl_.get())
+    unw_caching_policy_t caching_policy = UNW_CACHE_PER_THREAD;
+
+    const char *option = getenv("MEMHOOK_LIBUNWIND_CACHING_POLICY");
+    if (option)
     {
-        impl_.reset(new Impl());
+        if (option[0] == 'n')
+            caching_policy = UNW_CACHE_NONE;
+        else if (option[0] == 'g')
+            caching_policy = UNW_CACHE_GLOBAL;
     }
+
+    MEMHOOK_CHECK_UNW(unw_set_caching_policy(unw_local_addr_space, caching_policy));
 }
 
 void CallStackUnwinder::Destroy()
@@ -255,10 +245,14 @@ void CallStackUnwinder::Destroy()
     impl_.reset();
 }
 
-void CallStackUnwinder::GetCallStackInfo(CallStackInfo &callstack, size_t skip_frames)
+void CallStackUnwinder::GetCallStackInfo(CallStackInfo &callstack, size_t skip_frames, bool need_unwind_proc_info)
 {
+    if (!impl_.get())
+    {
+        impl_.reset(new Impl());
+    }
+
     callstack.clear();
-    callstack.reserve(16);
 
     unw_cursor_t cursor; unw_context_t uc;
     unw_getcontext(&uc);
@@ -281,12 +275,17 @@ void CallStackUnwinder::GetCallStackInfo(CallStackInfo &callstack, size_t skip_f
         callstack.push_back(CallStackInfoItem());
 
         CallStackInfoItem &item = callstack.back();
-        callstack.back().ip       = ip;
-        callstack.back().sp       = sp;
+        item.ip = ip;
+        item.sp = sp;
+
+        if (need_unwind_proc_info)
+        {
+            impl_->GetUnwProcInfo(item.ip, cursor, item.shl_path, item.shl_addr, item.procname, item.offp);
+        }
     }
 }
 
-void CallStackUnwinder::GetCallStackInfoUnwindData(CallStackInfo &callstack)
+void CallStackUnwinder::GetCallStackUnwindProcInfo(CallStackInfo &callstack)
 {
     BOOST_FOREACH(CallStackInfoItem &item, callstack)
     {

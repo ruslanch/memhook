@@ -38,11 +38,18 @@ void Engine::OnInitialize()
         PrintErrorMessage("Can't read cache flush timeout from environment: ", e.what());
     }
 
-    cache_flush_max_items_ = 200;
+    cache_flush_max_items_ = std::numeric_limits<std::size_t>::max();
     const char *cache_flush_max_items = getenv("MEMHOOK_CACHE_FLUSH_MAX_ITEMS");
     if (cache_flush_max_items)
     {
         cache_flush_max_items_ = strtoul(cache_flush_max_items, NULL, 10);
+    }
+
+    getprocinfo_policy_ = FlushLocalCacheWhen;
+    const char *getprocinfo_policy = getenv("MEMHOOK_GETPROCINFO_WHEN_STACK_UNWINDS");
+    if (getprocinfo_policy && getprocinfo_policy[0] != '0')
+    {
+        getprocinfo_policy_ = UnwindCallStackWhen;
     }
 }
 
@@ -58,7 +65,7 @@ void Engine::Insert(void *ptr, size_t memsize)
     const boost::chrono::system_clock::time_point now = boost::chrono::system_clock::now();
 
     CallStackInfo callstack;
-    callstack_unwinder_.GetCallStackInfo(callstack, 2);
+    callstack_unwinder_.GetCallStackInfo(callstack, 2, (getprocinfo_policy_ == UnwindCallStackWhen));
 
     boost::unique_lock<boost::mutex> lock(cache_mutex_);
     std::pair<IndexedContainer::iterator, bool> status =
@@ -164,7 +171,11 @@ void Engine::FlushLocalCache(const boost::chrono::system_clock::time_point &now,
         std::size_t n = 0;
         for (; iter != end && (dump_all || n < cache_flush_max_items_); ++iter, ++n)
         {
-            callstack_unwinder_.GetCallStackInfoUnwindData(const_cast<TraceInfo &>(*iter).callstack);
+            if (getprocinfo_policy_ == FlushLocalCacheWhen)
+            {
+                callstack_unwinder_.GetCallStackUnwindProcInfo(const_cast<TraceInfo &>(*iter).callstack);
+            }
+
             storage_->Insert(iter->address, iter->memsize, iter->timestamp, iter->callstack);
         }
 
