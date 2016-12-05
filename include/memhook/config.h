@@ -16,11 +16,6 @@
 #define MEMHOOK_SYMBOL_INIT(n) __attribute__((__visibility__("default"), constructor (n)))
 #define MEMHOOK_SYMBOL_FINI(n) __attribute__((__visibility__("default"), destructor  (n)))
 
-#if (HAVE_GCC_SYNC_VAL_COMPARE_AND_SWAP+0)
-#   define MEMHOOK_CAS(val, cmp, newval) __sync_val_compare_and_swap(val, cmp, newval)
-#else
-// TODO: use asm implementation
-#   error __sync_val_compare_and_swap does not supported
-#endif
+#define MEMHOOK_API __attribute__((__visibility__("default")))
 
 #endif

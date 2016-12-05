@@ -117,7 +117,7 @@ struct WriterImpl {
     typename boost::enable_if<boost::is_enum<T> >::type
     operator()(const T &val) const
     {
-        CallObj(static_cast<uint32_t>(val));
+        CallObj(static_cast<int32_t>(val));
     }
 
     template <typename U, typename A>

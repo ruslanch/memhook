@@ -90,7 +90,7 @@ using namespace memhook;
     NoHook no_hook__; \
     return MEMHOOK_FUNCTION_CALL(call);
 
-extern "C"
+extern "C" MEMHOOK_API
 void free(void *mem)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, free(mem));
@@ -100,7 +100,7 @@ void free(void *mem)
     MEMHOOK_FUNCTION_CALL(free(mem));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 void *malloc(size_t size)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, malloc(size));
@@ -111,7 +111,7 @@ void *malloc(size_t size)
     return mem;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 void *calloc(size_t nmemb, size_t size)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, calloc(nmemb, size));
@@ -122,7 +122,7 @@ void *calloc(size_t nmemb, size_t size)
     return mem;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 void *realloc(void *mem, size_t size)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, realloc(mem, size));
@@ -149,7 +149,7 @@ void *realloc(void *mem, size_t size)
     return memnew;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 void *memalign(size_t alignment, size_t size)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, memalign(alignment, size));
@@ -160,7 +160,7 @@ void *memalign(size_t alignment, size_t size)
     return mem;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int posix_memalign(void **memptr, size_t alignment, size_t size)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, posix_memalign(memptr, alignment, size));
@@ -172,7 +172,7 @@ int posix_memalign(void **memptr, size_t alignment, size_t size)
 }
 
 #if (HAVE_CFREE+0)
-extern "C"
+extern "C" MEMHOOK_API
 void cfree(void *mem)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, cfree(mem));
@@ -184,7 +184,7 @@ void cfree(void *mem)
 #endif
 
 #if (HAVE_ALIGNED_ALLOC+0)
-extern "C"
+extern "C" MEMHOOK_API
 void *aligned_alloc(size_t alignment, size_t size)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, aligned_alloc(alignment, size));
@@ -197,7 +197,7 @@ void *aligned_alloc(size_t alignment, size_t size)
 #endif
 
 #if (HAVE_VALLOC+0)
-extern "C"
+extern "C" MEMHOOK_API
 void *valloc(size_t size)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, valloc(size));
@@ -210,7 +210,7 @@ void *valloc(size_t size)
 #endif
 
 #if (HAVE_PVALLOC+0)
-extern "C"
+extern "C" MEMHOOK_API
 void *pvalloc(size_t size)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, pvalloc(size));
@@ -222,7 +222,7 @@ void *pvalloc(size_t size)
 }
 #endif
 
-extern "C"
+extern "C" MEMHOOK_API
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, mmap(addr, length, prot, flags, fd, offset));
@@ -234,7 +234,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
     return mem;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 void *mmap64(void *addr, size_t length, int prot, int flags, int fd, off64_t offset)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, mmap64(addr, length, prot, flags, fd, offset));
@@ -246,7 +246,7 @@ void *mmap64(void *addr, size_t length, int prot, int flags, int fd, off64_t off
     return mem;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int munmap(void *addr, size_t length)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init0, munmap(addr, length));
@@ -257,19 +257,19 @@ int munmap(void *addr, size_t length)
     return MEMHOOK_FUNCTION_CALL(munmap(addr, length));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 void *dlopen(const char *file, int mode)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init1, dlopen(file, mode));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 void *dlmopen(Lmid_t nsid, const char *file, int mode)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init1, dlmopen(nsid, file, mode));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int dlclose(void *handle)
 {
     MEMHOOK_FUNCTION_INIT(Init1);
@@ -282,14 +282,14 @@ int dlclose(void *handle)
     return ret;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int dl_iterate_phdr(int (*callback)(struct dl_phdr_info *info, size_t size, void *data),
         void *data)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init1, dl_iterate_phdr(callback, data));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 void *dlsym(void *handle, const char *name)
 {
     /* dlsym(RTLD_NEXT, "dlsym") -> this function*/
@@ -323,7 +323,7 @@ void *dlsym(void *handle, const char *name)
     return MEMHOOK_FUNCTION_CALL(dlsym(handle, name));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *),
         void *arg)
 {
@@ -340,7 +340,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
     return ret;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int pthread_join(pthread_t thread, void **retval)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init2, pthread_join(thread, retval));
@@ -354,7 +354,7 @@ int pthread_join(pthread_t thread, void **retval)
     return tjoin_ret;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int pthread_tryjoin_np(pthread_t thread, void **retval)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init2, pthread_tryjoin_np(thread, retval));
@@ -368,7 +368,7 @@ int pthread_tryjoin_np(pthread_t thread, void **retval)
     return tjoin_ret;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int pthread_timedjoin_np(pthread_t thread, void **retval, const struct timespec *abstime)
 {
     MEMHOOK_FUNCTION_PROLOGUE(Init2, pthread_timedjoin_np(thread, retval, abstime));
@@ -382,14 +382,14 @@ int pthread_timedjoin_np(pthread_t thread, void **retval, const struct timespec 
     return tjoin_ret;
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int getaddrinfo(const char *node, const char *service,
         const struct addrinfo *hints, struct addrinfo **res)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2, getaddrinfo(node, service, hints, res));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int getnameinfo(const struct sockaddr *sa, socklen_t salen,
         char *host, socklen_t hostlen, char *serv, socklen_t servlen,
 #if (__GLIBC_MINOR__ <= 12)
@@ -401,32 +401,32 @@ int getnameinfo(const struct sockaddr *sa, socklen_t salen,
         getnameinfo(sa, salen, host, hostlen, serv, servlen, flags));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 struct hostent *gethostbyname(const char *name)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2, gethostbyname(name));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 struct hostent *gethostbyaddr(const void *addr, socklen_t len, int type)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2, gethostbyaddr(addr, len, type));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 struct hostent *gethostbyname2(const char *name, int af)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2, gethostbyname2(name, af));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int gethostent_r(struct hostent *result_buf, char *buf, size_t buflen, struct hostent **result,
         int *h_errnop)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2, gethostent_r(result_buf, buf, buflen, result, h_errnop));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int gethostbyaddr_r(const void *addr, socklen_t len, int type, struct hostent *result_buf,
         char *buf, size_t buflen, struct hostent **result, int *h_errnop)
 {
@@ -434,7 +434,7 @@ int gethostbyaddr_r(const void *addr, socklen_t len, int type, struct hostent *r
         gethostbyaddr_r(addr, len, type, result_buf, buf, buflen, result, h_errnop));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int gethostbyname_r(const char *name, struct hostent *result_buf, char *buf, size_t buflen,
         struct hostent **result, int *h_errnop)
 {
@@ -442,7 +442,7 @@ int gethostbyname_r(const char *name, struct hostent *result_buf, char *buf, siz
         gethostbyname_r(name, result_buf, buf, buflen, result, h_errnop));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int gethostbyname2_r (const char *name, int af, struct hostent *result_buf,
         char *buf, size_t buflen, struct hostent **result, int *h_errnop)
 {
@@ -450,20 +450,20 @@ int gethostbyname2_r (const char *name, int af, struct hostent *result_buf,
         gethostbyname2_r(name, af, result_buf, buf, buflen, result, h_errnop));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int getpwent_r(struct passwd *resultbuf, char *buffer, size_t buflen, struct passwd **result)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2, getpwent_r(resultbuf, buffer, buflen, result));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int getpwuid_r(uid_t uid, struct passwd *resultbuf, char *buffer, size_t buflen,
         struct passwd **result)
 {
     MEMHOOK_FUNCTION_CALL_AND_RETURN(Init2, getpwuid_r(uid, resultbuf, buffer, buflen, result));
 }
 
-extern "C"
+extern "C" MEMHOOK_API
 int getpwnam_r(const char *name, struct passwd *resultbuf, char *buffer, size_t buflen,
         struct passwd **result)
 {

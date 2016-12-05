@@ -10,7 +10,7 @@ namespace memhook
 {
 namespace
 {
-    class SystemClockComporator: public leveldb::Comparator
+    class SystemClockComparator: public leveldb::Comparator
     {
     public:
         int Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const
@@ -30,12 +30,12 @@ namespace
             return 0;
         }
 
-        const char* Name() const { return "SystemClockComporator"; }
+        const char* Name() const { return "SystemClockComparator"; }
         void FindShortestSeparator(std::string *, const leveldb::Slice &) const {}
         void FindShortSuccessor(std::string *) const {}
     };
 
-    SystemClockComporator SYSTEM_CLOCK_COMPORATOR;
+    SystemClockComparator SYSTEM_CLOCK_COMPARATOR;
 } // namespace
 
 LevelDBStorage::LevelDBStorage(const char *path, std::size_t cache_size_mb)
@@ -56,7 +56,7 @@ LevelDBStorage::LevelDBStorage(const char *path, std::size_t cache_size_mb)
     symtab_ = OpenDB(options, path_ / "symtab");
     shltab_ = OpenDB(options, path_ / "shltab");
 
-    options.comparator = &SYSTEM_CLOCK_COMPORATOR;
+    options.comparator = &SYSTEM_CLOCK_COMPARATOR;
     if (cache_size_mb_)
     {
         options.block_cache = leveldb::NewLRUCache(cache_size_mb_ * 1024*1024);

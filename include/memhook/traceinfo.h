@@ -80,6 +80,7 @@ struct BasicTraceInfo : TraceInfoBase
             : TraceInfoBase(address, memsize, timestamp)
             , callstack(allocator)
     {
+        callstack.reserve(a_callstack.size());
         boost::transform(a_callstack, std::back_inserter(callstack), TraceInfoCallStackItemBuilder());
     }
 
