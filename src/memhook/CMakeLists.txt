@@ -5,26 +5,39 @@ find_package(libunwind REQUIRED)
 include_directories(${LIBUNWIND_INCLUDE_DIR})
 
 add_definitions(
-    -DMEMHOOK_TARGET_FILE_NAME="$<TARGET_LINKER_FILE_NAME:memhook>"
-    -fvisibility=hidden)
+  -Wall
+  -DMEMHOOK_TARGET_FILE_NAME="$<TARGET_LINKER_FILE_NAME:memhook>"
+  -DPIC
+  -D_REENTRANT=1
+  -fvisibility=hidden
+  -fno-builtin-malloc
+  -fno-builtin-free
+  -fno-builtin-realloc
+  -fno-builtin-calloc
+  -fno-builtin-cfree
+  -fno-builtin-memalign
+  -fno-builtin-posix_memalign
+  -fno-builtin-valloc
+  -fno-builtin-pvalloc)
 
 add_library(memhook SHARED
-    static_buf_alloc.cpp
-    dl_functions.cpp
-    dl_fcn_hook.cpp
-    no_hook.cpp
-    utils.cpp
-    callstack_unwinder.cpp
-    engine.cpp
-    memhook.cpp
-    ../memstorage/mmf_mapped_storage.cpp
-    ../memstorage/shm_mapped_storage.cpp
-    ../memstorage/network_mapped_storage.cpp)
+  boost_chrono.cpp
+  boost_error_code.cpp
+  static_buf_alloc.cpp
+  log.cpp
+  dl_functions.cpp
+  no_hook.cpp
+  spin_lock.cpp
+  thread.cpp
+  elf_injection.cpp
+  callstack_unwinder.cpp
+  engine.cpp
+  memhook.cpp)
 
 target_link_libraries(memhook LINK_PRIVATE
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${LIBUNWIND_LIBRARIES}
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    pthread rt dl)
+  -Wl,--no-whole-archive memhookcore
+  -Wl,--no-whole-archive ${LIBUNWIND_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
+  rt
+  dl
+  -Wl,-Bsymbolic)

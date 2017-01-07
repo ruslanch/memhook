@@ -3,15 +3,12 @@
 
 #include <memhook/common.h>
 
-#include <boost/container/string.hpp>
 #include <boost/container/list.hpp>
+#include <boost/container/string.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
 
-namespace memhook
-{
-
-struct CallStackInfoItem
-{
+namespace memhook {
+  struct CallStackInfoItem {
     boost::container::string shl_path;
     boost::container::string procname;
     uintptr_t shl_addr;
@@ -25,8 +22,7 @@ struct CallStackInfoItem
         , shl_addr()
         , ip()
         , sp()
-        , offp()
-    {}
+        , offp() {}
 
     CallStackInfoItem(const CallStackInfoItem &item)
         : shl_path(item.shl_path)
@@ -34,8 +30,7 @@ struct CallStackInfoItem
         , shl_addr(item.shl_addr)
         , ip(item.ip)
         , sp(item.sp)
-        , offp(item.offp)
-    {}
+        , offp(item.offp) {}
 
     CallStackInfoItem(BOOST_RV_REF(CallStackInfoItem) item)
         : shl_path(boost::move(item.shl_path))
@@ -43,39 +38,34 @@ struct CallStackInfoItem
         , shl_addr(item.shl_addr)
         , ip(item.ip)
         , sp(item.sp)
-        , offp(item.offp)
-    {}
+        , offp(item.offp) {}
 
-    CallStackInfoItem &operator=(const CallStackInfoItem &item)
-    {
-        CallStackInfoItem(item).swap(*this);
-        return *this;
+    CallStackInfoItem &operator=(const CallStackInfoItem &item) {
+      CallStackInfoItem(item).swap(*this);
+      return *this;
     }
 
-    CallStackInfoItem &operator=(BOOST_RV_REF(CallStackInfoItem) item)
-    {
-        item.swap(*this);
-        return *this;
+    CallStackInfoItem &operator=(BOOST_RV_REF(CallStackInfoItem) item) {
+      item.swap(*this);
+      return *this;
     }
 
-    void swap(CallStackInfoItem &item)
-    {
-        using std::swap;
+    void swap(CallStackInfoItem &item) {
+      using std::swap;
 
-        shl_path.swap(item.shl_path);
-        procname.swap(item.procname);
-        swap(shl_addr, item.shl_addr);
-        swap(ip, item.ip);
-        swap(sp, item.sp);
-        swap(offp, item.offp);
+      shl_path.swap(item.shl_path);
+      procname.swap(item.procname);
+      swap(shl_addr, item.shl_addr);
+      swap(ip, item.ip);
+      swap(sp, item.sp);
+      swap(offp, item.offp);
     }
 
     BOOST_COPYABLE_AND_MOVABLE(CallStackInfoItem);
-};
+  };
 
-typedef boost::container::list<CallStackInfoItem> CallStackInfo;
-
-} // memhook
+  typedef boost::container::list<CallStackInfoItem> CallStackInfo;
+}
 
 BOOST_FUSION_ADAPT_STRUCT(
     memhook::CallStackInfoItem,

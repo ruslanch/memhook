@@ -24,8 +24,12 @@ if [ -n "$TOOLCHAIN_HOST" ]; then
     LIBUNWIND_CC=$TOOLCHAIN_HOST-$LIBUNWIND_CC
 fi
 
+CUSTOM_FLAGS="-fno-builtin-malloc -fno-builtin-free -fno-builtin-realloc -fno-builtin-calloc"
+CUSTOM_FLAGS="$CUSTOM_FLAGS -fno-builtin-cfree -fno-builtin-memalign -fno-builtin-posix_memalign"
+CUSTOM_FLAGS="$CUSTOM_FLAGS -fno-builtin-valloc -fno-builtin-pvalloc"
+
 CC=$LIBUNWIND_CC ./autogen.sh
-CC=$LIBUNWIND_CC CFLAGS="-O3" ./configure --enable-static --disable-shared --with-pic
+CC=$LIBUNWIND_CC CFLAGS="-O2 $CUSTOM_FLAGS" ./configure --enable-static --disable-shared --with-pic
 CC=$LIBUNWIND_CC make -j
 
 popd # LIBUNWIND_BUILD_ROOT

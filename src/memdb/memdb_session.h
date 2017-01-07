@@ -46,8 +46,8 @@ private:
 
     void OnReadComplete(const ParsingCallback &callback, const boost::system::error_code& e);
     bool HandleNetRequest(NetRequest &request);
-    void OnInsert(const TraceInfoBase &traceinfo, const CallStackInfo &callstack);
-    void OnErase(const TraceInfoBase &traceinfo);
+    void OnAdd(const TraceInfoBase &traceinfo, const CallStackInfo &callstack);
+    void OnRemove(const TraceInfoBase &traceinfo);
     void OnUpdateSize(const TraceInfoBase &traceinfo);
     void OnNewStorage(const uintptr_t pid);
 

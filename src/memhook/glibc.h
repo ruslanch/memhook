@@ -1,42 +1,49 @@
 #ifndef MEMHOOK_SRC_MEMHOOK_GLIBC_H_INCLUDED
 #define MEMHOOK_SRC_MEMHOOK_GLIBC_H_INCLUDED
 
-#include <string.h>
-#include <stdlib.h>
-#include <malloc.h>
 #include <dlfcn.h>
 #include <link.h> // dl_iterate_phdr
-#include <sys/mman.h> // mmap
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <malloc.h>
 #include <netdb.h>
 #include <pwd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h> // mmap
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #ifndef MAP_STACK
-#   define MAP_STACK 0x20000
+#define MAP_STACK 0x20000
 #endif
 
+extern "C" {
+
 struct dlfcn_hook {
-  void *(*dlopen) (const char *file, int mode, void *dl_caller);
-  int   (*dlclose)(void *handle);
-  void *(*dlsym)  (void *handle, const char *name, void *dl_caller);
-  void *(*dlvsym) (void *handle, const char *name, const char *version, void *dl_caller);
+  void *(*dlopen)(const char *file, int mode, void *dl_caller);
+  int (*dlclose)(void *handle);
+  void *(*dlsym)(void *handle, const char *name, void *dl_caller);
+  void *(*dlvsym)(void *handle, const char *name, const char *version, void *dl_caller);
   char *(*dlerror)(void);
-  int   (*dladdr) (const void *address, Dl_info *info);
-  int   (*dladdr1)(const void *address, Dl_info *info, void **extra_info, int flags);
-  int   (*dlinfo) (void *handle, int request, void *arg, void *dl_caller);
+  int (*dladdr)(const void *address, Dl_info *info);
+  int (*dladdr1)(const void *address, Dl_info *info, void **extra_info, int flags);
+  int (*dlinfo)(void *handle, int request, void *arg, void *dl_caller);
   void *(*dlmopen)(Lmid_t nsid, const char *file, int mode, void *dl_caller);
   void *pad[4];
 };
 
-extern "C" dlfcn_hook *_dlfcn_hook;
+extern dlfcn_hook *_dlfcn_hook;
 
 // glibc internal function
-extern "C" int _dl_addr(const void *address, Dl_info *info, struct link_map **mapp, const void **symbolp);
-extern "C" void *_dl_sym(void *handle, const char *name, void *who);
-extern "C" void *_dl_vsym(void *handle, const char *name, const char *version, void *who);
-extern "C" int _dl_catch_error (const char **objname, const char **errstring, bool *mallocedp,
-    void (*operate) (void *), void *args);
-extern "C" int _dlerror_run(void (*operate) (void *), void *args);
+int _dl_addr(const void *address, Dl_info *info, struct link_map **mapp, const void **symbolp);
+void *_dl_sym(void *handle, const char *name, void *who);
+void *_dl_vsym(void *handle, const char *name, const char *version, void *who);
+int _dl_catch_error(const char **objname,
+        const char **errstring,
+        bool *mallocedp,
+        void (*operate)(void *),
+        void *args);
+int _dlerror_run(void (*operate)(void *), void *args);
+
+}  // extern "C"
 
 #endif

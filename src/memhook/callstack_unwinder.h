@@ -4,16 +4,12 @@
 #include "common.h"
 
 #include <memhook/callstack.h>
-
 #include <boost/noncopyable.hpp>
-#include <boost/thread.hpp>
+#include <boost/shared_ptr.hpp>
 
-namespace memhook
-{
-
-class CallStackUnwinder : noncopyable
-{
-public:
+namespace memhook {
+  class CallStackUnwinder : noncopyable {
+  public:
     void Initialize();
     void Destroy();
 
@@ -21,20 +17,19 @@ public:
     void GetCallStackUnwindProcInfo(CallStackInfo &callstack);
     void FlushCallStackCache();
 
-private:
+  private:
     void CheckImpl();
 
     class Impl;
 
-    typedef boost::thread_specific_ptr<Impl> ImplTSPtr;
+    typedef shared_ptr<Impl> ImplPtrBase;
 
-    struct ImplPtr : ImplTSPtr
-    {
-        ImplPtr();
-        ~ImplPtr();
-    } impl_;
-};
+    struct ImplPtr : ImplPtrBase {
+      ImplPtr();
+      ~ImplPtr();
+    } m_impl;
+  };
 
-} // ns memhook
+}  // ns memhook
 
 #endif

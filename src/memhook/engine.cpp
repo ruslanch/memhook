@@ -1,199 +1,211 @@
 #include "engine.h"
-#include "utils.h"
+#include "log.h"
+#include "no_hook.h"
 
 #include <memhook/chrono_utils.h>
-#include <memhook/mapped_storage_creator.h>
 
-namespace memhook
-{
-
-extern unique_ptr<MappedStorage> NewNetworkStorage(const char *host, int port);
-
-void Engine::OnInitialize()
-{
-    try
-    {
-        unique_ptr<MappedStorage> storage(NewStorage());
-        if (storage)
-            storage_.swap(storage);
-    }
-    catch (const std::exception &e)
-    {
-        PrintErrorMessage("Can't create storage: ", e.what());
+namespace memhook {
+  void Engine::OnInitialize() {
+    try {
+      unique_ptr<MappedStorage> storage(NewStorage());
+      if (storage)
+        m_storage.swap(storage);
+    } catch (const std::exception &e) {
+      LogPrintf(kERROR, "Can't create storage: %s\n", e.what());
     }
 
-    callstack_unwinder_.Initialize();
+    m_callstack_unwinder.Initialize();
 
-    cache_flush_timeout_ = boost::chrono::seconds(2);
-    try
-    {
-        const char *cache_flush_timeout_env = getenv("MEMHOOK_CACHE_FLUSH_TIMEOUT");
-        if (cache_flush_timeout_env)
-        {
-            ChronoDurationFromString(cache_flush_timeout_env, cache_flush_timeout_);
-        }
-    }
-    catch (const std::exception &e)
-    {
-        PrintErrorMessage("Can't read cache flush timeout from environment: ", e.what());
+    m_cache_flush_timeout = boost::chrono::seconds(2);
+    try {
+      const char *cache_flush_timeout_env = getenv("MEMHOOK_CACHE_FLUSH_TIMEOUT");
+      if (cache_flush_timeout_env) {
+        ChronoDurationFromString(cache_flush_timeout_env, m_cache_flush_timeout);
+      }
+    } catch (const std::exception &e) {
+      LogPrintf(kERROR, "Can't read cache flush timeout from environment: %s\n", e.what());
     }
 
-    cache_flush_max_items_ = std::numeric_limits<std::size_t>::max();
+    m_cache_flush_max_items = std::numeric_limits<std::size_t>::max();
     const char *cache_flush_max_items = getenv("MEMHOOK_CACHE_FLUSH_MAX_ITEMS");
-    if (cache_flush_max_items)
-    {
-        cache_flush_max_items_ = strtoul(cache_flush_max_items, NULL, 10);
+    if (cache_flush_max_items) {
+      m_cache_flush_max_items = strtoul(cache_flush_max_items, NULL, 10);
     }
 
-    getprocinfo_policy_ = FlushLocalCacheWhen;
+    m_getprocinfo_policy = kFlushLocalCacheWhen;
     const char *getprocinfo_policy = getenv("MEMHOOK_GETPROCINFO_WHEN_STACK_UNWINDS");
-    if (getprocinfo_policy && getprocinfo_policy[0] != '0')
-    {
-        getprocinfo_policy_ = UnwindCallStackWhen;
+    if (getprocinfo_policy && getprocinfo_policy[0] != '0') {
+      m_getprocinfo_policy = kUnwindCallStackWhen;
     }
-}
 
-void Engine::OnDestroy()
-{
-    boost::unique_lock<boost::mutex> lock(cache_mutex_);
-    FlushLocalCache(boost::chrono::system_clock::now(), boost::chrono::seconds(0), true);
-    storage_.reset();
-}
+    m_cache_thread_runnable.Init(this, &Engine::FlushLocalCacheThread);
+    m_cache_thread.Create(&m_cache_thread_runnable);
+  }
 
-void Engine::Insert(void *ptr, size_t memsize)
-{
-    const boost::chrono::system_clock::time_point now = boost::chrono::system_clock::now();
+  void Engine::OnDestroy() {
+    m_cache_thread.Interrupt();
+    m_cache_thread.Join();
+
+    MutexLock lock(m_cache_mutex);
+    FlushLocalCache(chrono::system_clock::now(), boost::chrono::seconds(0), true);
+    m_storage.reset();
+  }
+
+  void Engine::DoHookAlloc(void *mem, size_t memsize) {
+    if (BOOST_UNLIKELY(mem == NULL))
+      return;
+
+    const chrono::system_clock::time_point now = chrono::system_clock::now();
 
     CallStackInfo callstack;
-    callstack_unwinder_.GetCallStackInfo(callstack, 2, (getprocinfo_policy_ == UnwindCallStackWhen));
+    m_callstack_unwinder.GetCallStackInfo(
+            callstack, 2, (m_getprocinfo_policy == kUnwindCallStackWhen));
 
-    boost::unique_lock<boost::mutex> lock(cache_mutex_);
+    MutexLock lock(m_cache_mutex);
     std::pair<IndexedContainer::iterator, bool> status =
-        cache_.emplace(reinterpret_cast<uintptr_t>(ptr), memsize, now);
-    if (status.second)
-    {
-        const_cast<TraceInfo &>(*status.first).callstack.swap(callstack);
+            m_cache.emplace(reinterpret_cast<uintptr_t>(mem), memsize, now);
+    if (status.second) {
+      const_cast<TraceInfo &>(*status.first).callstack.swap(callstack);
     }
+  }
 
-    FlushLocalCache(now, cache_flush_timeout_, false);
-}
+  void Engine::DoHookFree(void *mem) {
+    if (BOOST_UNLIKELY(mem == NULL))
+      return;
 
-void Engine::Erase(void *ptr)
-{
-    boost::unique_lock<boost::mutex> lock(cache_mutex_);
-    IndexedContainer::iterator iter = cache_.find(reinterpret_cast<uintptr_t>(ptr));
-    if (iter != cache_.end())
-    {
-        cache_.erase(iter);
+    MutexLock lock(m_cache_mutex);
+    IndexedContainer::iterator iter = m_cache.find(reinterpret_cast<uintptr_t>(mem));
+    if (iter != m_cache.end()) {
+      m_cache.erase(iter);
+    } else if (m_storage) {
+      lock.Unlock();
+      m_storage->Remove(reinterpret_cast<uintptr_t>(mem));
     }
-    else if (storage_)
-    {
-        lock.unlock();
-        storage_->Erase(reinterpret_cast<uintptr_t>(ptr));
-    }
-}
+  }
 
-void Engine::UpdateSize(void *ptr, size_t newsize)
-{
-    boost::unique_lock<boost::mutex> lock(cache_mutex_);
-    IndexedContainer::iterator iter = cache_.find(reinterpret_cast<uintptr_t>(ptr));
-    if (iter != cache_.end())
-    {
-        const_cast<TraceInfo &>(*iter).memsize = newsize;
-    }
-    else if (storage_)
-    {
-        storage_->UpdateSize(reinterpret_cast<uintptr_t>(ptr), newsize);
-    }
-}
+  void Engine::DoHookUpdateSize(void *mem, size_t newsize) {
+    if (BOOST_UNLIKELY(mem == NULL))
+      return;
 
-unique_ptr<MappedStorage> Engine::NewStorage() const
-{
+    MutexLock lock(m_cache_mutex);
+    IndexedContainer::iterator iter = m_cache.find(reinterpret_cast<uintptr_t>(mem));
+    if (iter != m_cache.end()) {
+      const_cast<TraceInfo &>(*iter).memsize = newsize;
+    } else if (m_storage) {
+      m_storage->UpdateSize(reinterpret_cast<uintptr_t>(mem), newsize);
+    }
+  }
+
+  unique_ptr<MappedStorage> Engine::NewStorage() const {
     const char *ipc_name = getenv("MEMHOOK_NET_HOST");
-    if (ipc_name)
-    {
-        int ipc_port = MEMHOOK_NETWORK_STORAGE_PORT;
-        const char *ipc_port_env = getenv("MEMHOOK_NET_PORT");
-        if (ipc_port_env)
-            ipc_port = strtoul(ipc_port_env, NULL, 10);
-        return NewNetworkMappedStorage(ipc_name, ipc_port);
+    if (ipc_name) {
+      int ipc_port = MEMHOOK_NETWORK_STORAGE_PORT;
+      const char *ipc_port_env = getenv("MEMHOOK_NET_PORT");
+      if (ipc_port_env)
+        ipc_port = strtoul(ipc_port_env, NULL, 10);
+      return NewNetworkMappedStorage(ipc_name, ipc_port);
     }
 
-    size_t ipc_size = (8ul << 30); // default 8 Gb
+    size_t ipc_size = (8ul << 30);  // default 8 Gb
     const char *ipc_size_env = getenv("MEMHOOK_SIZE_GB");
-    if (ipc_size_env)
-    {
-        size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
-        if (new_ipc_size != 0)
-            ipc_size = (new_ipc_size << 30);
-    }
-    else if ((ipc_size_env = getenv("MEMHOOK_SIZE_MB")))
-    {
-        size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
-        if (new_ipc_size != 0)
-            ipc_size = (new_ipc_size << 20);
-    }
-    else if ((ipc_size_env = getenv("MEMHOOK_SIZE_KB")))
-    {
-        size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
-        if (new_ipc_size != 0)
-            ipc_size = (new_ipc_size << 10);
-    }
-    else if ((ipc_size_env = getenv("MEMHOOK_SIZE")))
-    {
-        size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
-        if (new_ipc_size != 0)
-            ipc_size = new_ipc_size;
+    if (ipc_size_env) {
+      size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
+      if (new_ipc_size != 0)
+        ipc_size = (new_ipc_size << 30);
+    } else if ((ipc_size_env = getenv("MEMHOOK_SIZE_MB"))) {
+      size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
+      if (new_ipc_size != 0)
+        ipc_size = (new_ipc_size << 20);
+    } else if ((ipc_size_env = getenv("MEMHOOK_SIZE_KB"))) {
+      size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
+      if (new_ipc_size != 0)
+        ipc_size = (new_ipc_size << 10);
+    } else if ((ipc_size_env = getenv("MEMHOOK_SIZE"))) {
+      size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
+      if (new_ipc_size != 0)
+        ipc_size = new_ipc_size;
     }
 
     ipc_name = getenv("MEMHOOK_FILE");
     if (ipc_name)
-        return NewMMFMappedStorage(ipc_name, ipc_size);
+      return NewMMFMappedStorage(ipc_name, ipc_size);
 
     ipc_name = getenv("MEMHOOK_SHM_NAME");
     if (!ipc_name)
-        ipc_name = MEMHOOK_SHARED_MEMORY;
+      ipc_name = MEMHOOK_SHARED_MEMORY;
 
     return NewSHMMappedStorage(ipc_name, ipc_size);
-}
+  }
 
-void Engine::FlushLocalCache(const boost::chrono::system_clock::time_point &now,
-        const boost::chrono::seconds &timeout, bool dump_all)
-{
-    typedef typename IndexedContainer::template nth_index<1>::type Index1;
-    Index1 &index1 = boost::get<1>(cache_);
+  void Engine::FlushLocalCache(const chrono::system_clock::time_point &now,
+          const boost::chrono::seconds &timeout,
+          bool dump_all) {
+    typedef IndexedContainer::nth_index<1>::type Index1;
+    Index1 &index1 = boost::get<1>(m_cache);
 
-    const typename Index1::iterator end = dump_all ? index1.end() : index1.lower_bound(now - timeout);
-    typename Index1::iterator iter = index1.begin();
+    const Index1::iterator end = dump_all ? index1.end() : index1.lower_bound(now - timeout);
+    Index1::iterator iter = index1.begin();
 
-    if (storage_)
-    {
-        std::size_t n = 0;
-        for (; iter != end && (dump_all || n < cache_flush_max_items_); ++iter, ++n)
-        {
-            if (getprocinfo_policy_ == FlushLocalCacheWhen)
-            {
-                callstack_unwinder_.GetCallStackUnwindProcInfo(const_cast<TraceInfo &>(*iter).callstack);
-            }
+    if (m_storage) {
+      std::size_t n = 0;
+      for (; iter != end && (dump_all || n < m_cache_flush_max_items); ++iter, ++n) {
+        if (m_getprocinfo_policy == kFlushLocalCacheWhen)
+          m_callstack_unwinder.GetCallStackUnwindProcInfo(const_cast<TraceInfo &>(*iter).callstack);
+        m_storage->Add(iter->address, iter->memsize, iter->callstack, iter->timestamp);
+      }
 
-            storage_->Insert(iter->address, iter->memsize, iter->timestamp, iter->callstack);
-        }
-
-        if (n)
-        {
-            storage_->Flush();
-        }
+      if (n)
+        m_storage->Flush();
     }
 
     if (iter != index1.begin())
-    {
-        index1.erase(index1.begin(), iter);
+      index1.erase(index1.begin(), iter);
+  }
+
+  void Engine::DoFlushCallStackCache() {
+    m_callstack_unwinder.FlushCallStackCache();
+  }
+
+  void Engine::HookAlloc(void *mem, size_t memsize) {
+    boost::intrusive_ptr<Engine> instance = GetInstance();
+    if (BOOST_LIKELY(instance != NULL)) {
+      instance->DoHookAlloc(mem, memsize);
     }
-}
+  }
 
-void Engine::FlushCallStackCache()
-{
-    callstack_unwinder_.FlushCallStackCache();
-}
+  void Engine::HookFree(void *mem) {
+    boost::intrusive_ptr<Engine> instance = GetInstance();
+    if (BOOST_LIKELY(instance != NULL)) {
+      instance->DoHookFree(mem);
+    }
+  }
 
-} // ns memhook
+  void Engine::HookUpdateSize(void *mem, size_t newsize) {
+    boost::intrusive_ptr<Engine> instance = GetInstance();
+    if (BOOST_LIKELY(instance != NULL)) {
+      instance->DoHookUpdateSize(mem, newsize);
+    }
+  }
+
+  void Engine::FlushCallStackCache() {
+    boost::intrusive_ptr<Engine> instance = GetInstance();
+    if (BOOST_LIKELY(instance != NULL)) {
+      instance->DoFlushCallStackCache();
+    }
+  }
+
+  void *Engine::FlushLocalCacheThread() {
+    NoHook no_hook;
+    InterruptibleThread &thread = static_cast<InterruptibleThread &>(Thread::Current());
+    chrono::system_clock::time_point tp;
+    do {
+      tp = chrono::system_clock::now() + chrono::seconds(1);
+      MutexLock lock(m_cache_mutex);
+      FlushLocalCache(chrono::system_clock::now(), m_cache_flush_timeout, false);
+      lock.Unlock();
+    } while (thread.SleepUntil(tp));
+
+    return NULL;
+  }
+
+}  // ns memhook

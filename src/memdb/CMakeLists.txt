@@ -1,12 +1,15 @@
+add_definitions(
+  -Wall
+  -D_REENTRANT=1)
+
 add_executable(memdb
-    leveldb_storage.cpp
-    memdb_session.cpp
-    memdb_server.cpp
-    memdb.cpp)
+  memdb_session.cpp
+  memdb_server.cpp
+  memdb.cpp)
 
 target_link_libraries(memdb
-    memstorage
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_LIBRARIES}
-    ${LEVELDB_LIBRARIES}
-    pthread rt)
+  -Wl,--no-whole-archive memhookcore
+  ${Boost_LIBRARIES}
+  ${LEVELDB_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
+  rt)

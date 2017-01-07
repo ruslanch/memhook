@@ -4,77 +4,47 @@
 #include <boost/bind.hpp>
 #include <boost/range/algorithm.hpp>
 
-#include <cxxabi.h>
 #include <signal.h>
 
-namespace memhook
-{
-namespace mapped_view_detail
-{
-    static bool volatile is_interrupted = false;
+namespace memhook {
+  namespace mapped_view_detail {
+    static bool volatile g_is_interrupted = false;
 
-    void InterruptHandler(int, siginfo_t *, void *)
-    {
-        is_interrupted = true;
+    void InterruptHandler(int, siginfo_t *, void *) {
+      g_is_interrupted = true;
     }
-} // mapped_view_detail
+  }
 
-void UniqueCharBufNoFree(const char *) BOOST_NOEXCEPT_OR_NOTHROW
-{
-    // nothing
-}
+  MappedViewBase::MappedViewBase()
+      : m_options()
+      , m_flags(kSortByTime) {}
 
-void UniqueCharBufFree(const char *mem) BOOST_NOEXCEPT_OR_NOTHROW
-{
-    free(const_cast<char *>(mem));
-}
+  bool MappedViewBase::GetOptionFlag(OptionFlag option_flag) const {
+    return !!(m_flags & option_flag);
+  }
 
-UniqueCharBuf CxxSymbolDemangle(const char *source)
-{
-    int ret = 0;
-    UniqueCharBuf res(abi::__cxa_demangle(source, NULL, NULL, &ret), UniqueCharBufFree);
-    if (ret == 0 && res)
-        return boost::move(res);
-    return UniqueCharBuf(source, UniqueCharBufNoFree);
-}
-
-MappedViewBase::MappedViewBase()
-    : options_()
-    , flags_(SortByTime)
-{}
-
-bool MappedViewBase::GetOptionFlag(OptionFlag option_flag) const
-{
-    return !!(flags_ & option_flag);
-}
-
-void MappedViewBase::SetOptionFlag(OptionFlag option_flag, bool setval)
-{
+  void MappedViewBase::SetOptionFlag(OptionFlag option_flag, bool setval) {
     const uint32_t sortmask = 0x00f0;
     if (option_flag & sortmask)
-        flags_ &= ~sortmask;
+      m_flags &= ~sortmask;
 
     if (setval)
-        flags_ |= option_flag;
+      m_flags |= option_flag;
     else
-        flags_ &= ~option_flag;
-}
+      m_flags &= ~option_flag;
+  }
 
-void MappedViewBase::SetOption(BOOST_RV_REF(unique_ptr<MappedViewOption>) option)
-{
-    options_.push_back(option.get());
+  void MappedViewBase::SetOption(BOOST_RV_REF(unique_ptr<MappedViewOption>) option) {
+    m_options.push_back(option.get());
     option.release();
-}
+  }
 
-bool MappedViewBase::CheckTraceInfoOptions(const TraceInfoBase &tinfo) const
-{
-    return (boost::find_if(options_, !boost::bind(&MappedViewOption::Call, _1,
-                                        boost::cref(tinfo))) == options_.end());
-}
+  bool MappedViewBase::CheckTraceInfoOptions(const TraceInfoBase &tinfo) const {
+    return (boost::find_if(m_options,
+            !boost::bind(&MappedViewOption::Call, _1, boost::cref(tinfo))) == m_options.end());
+  }
 
-bool MappedViewBase::IsInterrupted()
-{
-    return mapped_view_detail::is_interrupted;
+  bool MappedViewBase::IsInterrupted() {
+    return mapped_view_detail::g_is_interrupted;
+  }
 }
-
-} // memhook

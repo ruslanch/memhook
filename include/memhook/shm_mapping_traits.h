@@ -7,34 +7,28 @@
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/noncopyable.hpp>
 
-namespace memhook
-{
+namespace memhook {
+  typedef boost::interprocess::basic_managed_shared_memory<
+          char,
+          boost::interprocess::rbtree_best_fit<boost::interprocess::null_mutex_family>,
+          boost::interprocess::iset_index
+        > SHMNoLock;
 
-typedef boost::interprocess::basic_managed_shared_memory<
-        char,
-        boost::interprocess::rbtree_best_fit<boost::interprocess::null_mutex_family>,
-        boost::interprocess::iset_index
-    > SHMNoLock;
+  typedef MappingTraits<SHMNoLock> SHMMappingTraits;
 
-typedef MappingTraits<
-        SHMNoLock
-    > SHMMappingTraits;
-
-template <>
-struct MappingCleaner<SHMMappingTraits> : private noncopyable
-{
-    std::string name_;
-    explicit MappingCleaner(const char *name) : name_(name)
-    {
-        boost::interprocess::shared_memory_object::remove(name_.c_str());
+  template <>
+  class MappingCleaner<SHMMappingTraits> : noncopyable {
+  public:
+    explicit MappingCleaner(const char *name) : m_name(name) {
+      boost::interprocess::shared_memory_object::remove(m_name.c_str());
     }
 
-    ~MappingCleaner()
-    {
-        boost::interprocess::shared_memory_object::remove(name_.c_str());
+    ~MappingCleaner() {
+      boost::interprocess::shared_memory_object::remove(m_name.c_str());
     }
-};
-
-} // memhook
+  private:
+    std::string m_name;
+  };
+}  // memhook
 
 #endif

@@ -5,22 +5,19 @@
 
 #include <cstddef>
 
-namespace memhook
-{
-
-/* simple allocator used when the program starts */
-class StaticBufAlloc
-{
-public:
+namespace memhook {
+  /* simple allocator used when the program starts */
+  class StaticBufAlloc {
+  public:
     static void* malloc(size_t size);
     static void* calloc(size_t nmemb, size_t size);
-    static void  free(void *ptr);
+    static void free(void* ptr);
 
-private:
-    static char   tmpbuf_[1024];
+  private:
+    static char tmpbuf_[1024];
     static size_t tmppos_;
-};
+  };
 
-} // namespace memhook
+}
 
 #endif

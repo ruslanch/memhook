@@ -3,22 +3,13 @@
 
 #include "common.h"
 #include "mapped_view.h"
-
+#include "mapped_view_helpers.h"
 #include <memhook/mapping_traits.h>
-
 #include <boost/ptr_container/ptr_vector.hpp>
 
-namespace memhook
-{
-
-typedef boost::movelib::unique_ptr<const char, void (*)(const char *)> UniqueCharBuf;
-void UniqueCharBufNoFree(const char *) BOOST_NOEXCEPT_OR_NOTHROW;
-void UniqueCharBufFree(const char *) BOOST_NOEXCEPT_OR_NOTHROW;
-UniqueCharBuf CxxSymbolDemangle(const char *source);
-
-class MappedViewBase : public MappedView
-{
-public:
+namespace memhook {
+  class MappedViewBase : public MappedView {
+  public:
     MappedViewBase();
 
     bool GetOptionFlag(OptionFlag option_flag) const;
@@ -32,11 +23,11 @@ public:
 
     static bool IsInterrupted();
 
-private:
-    boost::ptr_vector<MappedViewOption> options_;
-    uint32_t flags_;
-};
+  private:
+    boost::ptr_vector<MappedViewOption> m_options;
+    uint32_t m_flags;
+  };
 
-} // memhook
+}  // memhook
 
 #endif

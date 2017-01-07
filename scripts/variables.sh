@@ -17,7 +17,7 @@ if [ ! -d "$BUILD_ROOT" ]; then
 fi
 
 if [ -z "$BOOST_VERSION" ]; then
-  BOOST_VERSION=1.62.0
+  BOOST_VERSION=1.63.0
 fi
 
 if [ -z "$BOOST_BUILD_ROOT" ]; then

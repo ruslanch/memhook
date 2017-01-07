@@ -8,109 +8,95 @@
 #include <boost/range/algorithm.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/adapt_adt.hpp>
-#include <boost/chrono/system_clocks.hpp>
 #include <boost/container/vector.hpp>
 
-namespace memhook
-{
-
-struct TraceInfoBase
-{
+namespace memhook {
+  class TraceInfoBase {
+  public:
     TraceInfoBase()
-            : address(), memsize(), timestamp()
-    {}
+        : address(), memsize(), timestamp() {}
 
-    TraceInfoBase(uintptr_t address, size_t memsize, const boost::chrono::system_clock::time_point &timestamp)
-            : address(address), memsize(memsize), timestamp(timestamp)
-    {}
+    TraceInfoBase(uintptr_t address, size_t memsize,
+            const chrono::system_clock::time_point &timestamp)
+        : address(address), memsize(memsize), timestamp(timestamp) {}
 
     uintptr_t   address;
     std::size_t memsize;
-    boost::chrono::system_clock::time_point timestamp;
-};
+    chrono::system_clock::time_point timestamp;
+  };
 
-struct TraceInfoCallStackItem
-{
+  class TraceInfoCallStackItem {
+  public:
     TraceInfoCallStackItem()
-        : shl_addr()
-        , ip()
-        , sp()
-        , offp()
-    {}
+        : shl_addr(), ip(), sp(), offp() {}
 
     TraceInfoCallStackItem(uintptr_t shl_addr, uintptr_t ip, uintptr_t sp, uintptr_t offp)
-        : shl_addr(shl_addr)
-        , ip(ip)
-        , sp(sp)
-        , offp(offp)
-    {}
+        : shl_addr(shl_addr), ip(ip), sp(sp), offp(offp) {}
 
     uintptr_t shl_addr;
     uintptr_t ip;
     uintptr_t sp;
     uintptr_t offp;
-};
+  };
 
-struct TraceInfoCallStackItemBuilder
-{
-    TraceInfoCallStackItem operator()(const CallStackInfoItem &item) const
-    {
-        return TraceInfoCallStackItem(item.shl_addr, item.ip, item.sp, item.offp);
-    }
-};
-
-template <typename AllocatorT = std::allocator<TraceInfoCallStackItem> >
-struct BasicTraceInfo : TraceInfoBase
-{
+  template <typename AllocatorT = std::allocator<TraceInfoCallStackItem> >
+  class BasicTraceInfo : public TraceInfoBase {
+  public:
     typedef AllocatorT Allocator;
     typedef boost::container::vector<TraceInfoCallStackItem, Allocator> CallStack;
 
+    CallStack callstack;
+
     BasicTraceInfo(const Allocator &allocator = Allocator())
-            : TraceInfoBase()
-            , callstack(allocator)
-    {}
+        : TraceInfoBase()
+        , callstack(allocator) {}
 
     BasicTraceInfo(TraceInfoBase &traceinfo, const Allocator &allocator = Allocator())
-            : TraceInfoBase(traceinfo)
-            , callstack(allocator)
-    {}
+        : TraceInfoBase(traceinfo)
+        , callstack(allocator) {}
 
-    BasicTraceInfo(uintptr_t address, size_t memsize, const boost::chrono::system_clock::time_point &timestamp,
-                const CallStackInfo &a_callstack, const Allocator &allocator = Allocator())
-            : TraceInfoBase(address, memsize, timestamp)
-            , callstack(allocator)
-    {
-        callstack.reserve(a_callstack.size());
-        boost::transform(a_callstack, std::back_inserter(callstack), TraceInfoCallStackItemBuilder());
+    BasicTraceInfo(uintptr_t address, size_t memsize,
+            const chrono::system_clock::time_point &timestamp,
+            const CallStackInfo &a_callstack, const Allocator &allocator = Allocator())
+        : TraceInfoBase(address, memsize, timestamp)
+        , callstack(allocator) {
+      callstack.reserve(a_callstack.size());
+      boost::transform(a_callstack, std::back_inserter(callstack), Builder());
     }
 
-    CallStack callstack;
-};
+  private:
+    struct Builder {
+      TraceInfoCallStackItem operator()(const CallStackInfoItem &item) const {
+        return TraceInfoCallStackItem(item.shl_addr, item.ip, item.sp, item.offp);
+      }
+    };
+  };
 
-} // memhook
+  typedef BasicTraceInfo<> TraceInfo;
+}
 
 BOOST_FUSION_ADAPT_STRUCT(
-    memhook::TraceInfoBase,
-    (uintptr_t,   address)
-    (std::size_t, memsize)
-    (boost::chrono::system_clock::time_point, timestamp)
+  memhook::TraceInfoBase,
+  (uintptr_t,   address)
+  (std::size_t, memsize)
+  (boost::chrono::system_clock::time_point, timestamp)
 );
 
 BOOST_FUSION_ADAPT_STRUCT(
-    memhook::TraceInfoCallStackItem,
-    (uintptr_t, shl_addr)
-    (uintptr_t, ip)
-    (uintptr_t, sp)
-    (uintptr_t, offp)
+  memhook::TraceInfoCallStackItem,
+  (uintptr_t, shl_addr)
+  (uintptr_t, ip)
+  (uintptr_t, sp)
+  (uintptr_t, offp)
 );
 
 BOOST_FUSION_ADAPT_TPL_STRUCT(
-    (AllocatorT),
-    (memhook::BasicTraceInfo)(AllocatorT),
-    (uintptr_t,   address)
-    (std::size_t, memsize)
-    (boost::chrono::system_clock::time_point, timestamp)
-    (typename memhook::BasicTraceInfo<AllocatorT>::CallStack, callstack)
+  (AllocatorT),
+  (memhook::BasicTraceInfo)(AllocatorT),
+  (uintptr_t,   address)
+  (std::size_t, memsize)
+  (boost::chrono::system_clock::time_point, timestamp)
+  (typename memhook::BasicTraceInfo<AllocatorT>::CallStack, callstack)
 );
 
 #endif

@@ -2,84 +2,89 @@
 #define MEMHOOK_SRC_MEMHOOK_ENGINE_H_INCLUDED
 
 #include "common.h"
-#include "singleton.h"
 #include "callstack_unwinder.h"
+#include "singleton.h"
+#include "thread.h"
 
 #include <memhook/callstack.h>
-#include <memhook/traceinfo.h>
 #include <memhook/mapped_storage.h>
+#include <memhook/traceinfo.h>
 
-#include <boost/move/unique_ptr.hpp>
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
-#include <boost/thread/thread.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
-namespace memhook
-{
+namespace memhook {
+  class Engine : public SingletonImpl<Engine> {
+  public:
+    struct TraceInfo : TraceInfoBase {
+      CallStackInfo callstack;
 
-class Engine : public SingletonImpl<Engine>
-{
-public:
-    struct TraceInfo : TraceInfoBase
-    {
-        CallStackInfo callstack;
-
-        TraceInfo(uintptr_t address, size_t memsize,
-                const boost::chrono::system_clock::time_point &timestamp)
-            : TraceInfoBase(address, memsize, timestamp)
-            , callstack()
-        {}
+      TraceInfo(uintptr_t address, size_t memsize, const chrono::system_clock::time_point &timestamp)
+          : TraceInfoBase(address, memsize, timestamp)
+          , callstack() {}
     };
 
     void OnInitialize();
     void OnDestroy();
 
-    void Insert(void *ptr, size_t memsize);
-    void Erase(void *ptr);
-    void UpdateSize(void *ptr, size_t newsize);
-    void FlushCallStackCache();
+    static void HookAlloc(void *mem, size_t memsize) MEMHOOK_NOEXCEPT;
+    static void HookFree(void *mem) MEMHOOK_NOEXCEPT;
+    static void HookUpdateSize(void *mem, size_t newsize) MEMHOOK_NOEXCEPT;
+    static void FlushCallStackCache() MEMHOOK_NOEXCEPT;
 
-private:
-    boost::movelib::unique_ptr<MappedStorage> NewStorage() const;
-    void FlushLocalCache(const boost::chrono::system_clock::time_point &now,
-        const boost::chrono::seconds &timeout, bool dump_all);
+  protected:
+    void DoHookAlloc(void *mem, size_t memsize);
+    void DoHookFree(void *mem);
+    void DoHookUpdateSize(void *mem, size_t newsize);
+    void DoFlushCallStackCache();
 
-    boost::movelib::unique_ptr<MappedStorage> storage_;
+  private:
+    unique_ptr<MappedStorage> NewStorage() const;
+
+    void FlushLocalCache(const chrono::system_clock::time_point &now,
+            const boost::chrono::seconds &timeout,
+            bool dump_all);
+
+    void *FlushLocalCacheThread();
+
+    unique_ptr<MappedStorage> m_storage;
 
     typedef boost::multi_index_container<
-        TraceInfo,
-        boost::multi_index::indexed_by<
-            boost::multi_index::ordered_unique<
-                boost::multi_index::member<TraceInfoBase,
-                    uintptr_t, &TraceInfoBase::address
-                >
-            >,
-            boost::multi_index::ordered_non_unique<
-                boost::multi_index::member<TraceInfoBase,
-                    boost::chrono::system_clock::time_point, &TraceInfoBase::timestamp
-                >
-            >
+      TraceInfo,
+      boost::multi_index::indexed_by<
+        boost::multi_index::ordered_unique<
+          boost::multi_index::member<TraceInfoBase,
+            uintptr_t, &TraceInfoBase::address
+          >
+        >,
+        boost::multi_index::ordered_non_unique<
+          boost::multi_index::member<TraceInfoBase,
+            chrono::system_clock::time_point, &TraceInfoBase::timestamp
+          >
         >
+      >
     > IndexedContainer;
 
-    boost::mutex     cache_mutex_;
-    IndexedContainer cache_;
+    Mutex m_cache_mutex;
+    IndexedContainer m_cache;
 
-    CallStackUnwinder callstack_unwinder_;
+    CallStackUnwinder m_callstack_unwinder;
 
-    boost::chrono::seconds cache_flush_timeout_;
-    std::size_t            cache_flush_max_items_;
+    chrono::seconds m_cache_flush_timeout;
+    std::size_t m_cache_flush_max_items;
 
-    enum CallStackUnwindProcInfoPolicy
-    {
-        UnwindCallStackWhen,
-        FlushLocalCacheWhen,
+    enum CallStackUnwindProcInfoPolicy {
+      kUnwindCallStackWhen,
+      kFlushLocalCacheWhen,
     };
 
-    CallStackUnwindProcInfoPolicy getprocinfo_policy_;
-};
+    CallStackUnwindProcInfoPolicy m_getprocinfo_policy;
 
-} // ns memhook
+    ThreadRunnableBind0<Engine> m_cache_thread_runnable;
+    InterruptibleThread m_cache_thread;
+  };
+
+}  // ns memhook
 
 #endif

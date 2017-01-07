@@ -12,12 +12,17 @@ include(CheckIncludeFiles)
 include(CheckCXXSourceCompiles)
 include(TestBigEndian)
 include(CheckLibraryExists)
+include(AppendLinkFlags)
 
 test_big_endian(SYSTEM_BIG_ENDIAN)
 
-check_include_files("sys/mman.h" HAVE_SYS_MMAN_H)
-check_library_exists(rt clock_gettime   "time.h"  HAVE_CLOCK_GETTIME)
-check_library_exists(dl dlopen          "dlfcn.h" HAVE_DLOPEN)
+check_include_files("sys/mman.h"                       HAVE_SYS_MMAN_H)
+check_include_files("sys/syscall.h"                    HAVE_SYS_SYSCALL_H)
+check_library_exists(rt      clock_gettime "time.h"    HAVE_CLOCK_GETTIME)
+check_library_exists(rt      sched_yield   "sched.h"   HAVE_SCHED_YIELD)
+check_library_exists(pthread pthread_yield "pthread.h" HAVE_PTHREAD_YIELD)
+check_library_exists(dl      dlvsym        "dlfcn.h"   HAVE_DLVSYM)
+
 
 check_cxx_source_compiles("int main() { __builtin_bswap16(0); return 0; }"
     HAVE_BUILTIN_BYTESWAP_16)

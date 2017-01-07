@@ -8,74 +8,60 @@
 #include <boost/container/vector.hpp>
 #include <boost/unordered_map.hpp>
 
-namespace memhook
-{
+namespace memhook {
+  enum NetReqType {
+    kNetReqUnknown    = 0,
+    kNetReqAdd        = 0xfd1a73e7,
+    kNetReqRemove     = 0x68801d30,
+    kNetReqUpdateSize = 0x23ac73f5,
+    kNetReqFetch      = 0x82e96343,
+    kNetReqFetchEnd   = 0x02ad0248,
+    kNetReqEnd        = 0x00fc33b1,
+    kNetReqClear      = 0xe5b1f106,
+    kNetReqNewStorage = 0x8f3948da,
+  };
 
-enum NetReqType
-{
-    NetReqUnknown    = 0,
-    NetReqInsert     = 0xc5cc9ef5,
-    NetReqErase      = 0x261979c2,
-    NetReqUpdateSize = 0x92587e96,
-    NetReqFetch      = 0x82e96343,
-    NetReqFetchEnd   = 0x02ad0248,
-    NetReqEnd        = 0x00fc33b1,
-    NetReqClear      = 0xe5b1f106,
-    NetReqNewStorage = 0xd533fed1,
-};
+  enum NetResType {
+    kNetResUnknown           = 0,
+    kNetResEnd               = 0x00fc33b1,
+    kNetResMoreDataAvailable = 0x45011baa,
+  };
 
-enum NetResType
-{
-    NetResUnknown           = 0,
-    NetResEnd               = 0x00fc33b1,
-    NetResMoreDataAvailable = 0x45011baa,
-};
+  struct NetProtoTag {};
 
-struct NetProtoTag
-{};
-
-struct NetProtoOutbound : NetProtoTag
-{
-    NetProtoOutbound()
-        : size(0)
-    {}
-
-    explicit NetProtoOutbound(std::size_t size)
-        : size(size)
-    {}
-
+  struct NetProtoOutbound : NetProtoTag {
+    NetProtoOutbound() : size(0) {}
+    explicit NetProtoOutbound(std::size_t size) : size(size) {}
     std::size_t size;
-};
+  };
 
-struct NetRequest : NetProtoTag
-{
-    NetRequest()
-            : type(NetReqUnknown)
-            , traceinfo()
-            , callstack()
-    {}
+  struct NetRequest : NetProtoTag {
+      NetRequest()
+          : type(kNetReqUnknown)
+          , traceinfo()
+          , callstack() {}
 
-    NetRequest(NetReqType type, uintptr_t address, std::size_t memsize,
-                const boost::chrono::system_clock::time_point &timestamp,
-                const CallStackInfo &a_callstack = CallStackInfo())
-            : type(type)
-            , traceinfo(address, memsize, timestamp)
-            , callstack(a_callstack)
-    {}
+      NetRequest(NetReqType type,
+              uintptr_t address = 0,
+              std::size_t memsize = 0,
+              const chrono::system_clock::time_point &timestamp = chrono::system_clock::time_point(),
+              const CallStackInfo &a_callstack = CallStackInfo())
+          : type(type)
+          , traceinfo(address, memsize, timestamp)
+          , callstack(a_callstack) {}
 
-    NetReqType    type;
-    TraceInfoBase traceinfo;
-    CallStackInfo callstack;
-};
+      NetReqType    type;
+      TraceInfoBase traceinfo;
+      CallStackInfo callstack;
+  };
 
-struct NetResponse : NetProtoTag
-{
+  struct NetResponse : NetProtoTag {
     NetResponse()
-            : req_type(NetReqUnknown)
-            , response(NetResUnknown)
-            , traceinfo()
-            , symtab()
-            , shltab()
+        : req_type(kNetReqUnknown)
+        , response(kNetResUnknown)
+        , traceinfo()
+        , symtab()
+        , shltab()
     {}
 
     NetReqType req_type;
@@ -87,7 +73,7 @@ struct NetResponse : NetProtoTag
     typedef boost::unordered_map<uintptr_t, boost::container::string> SymbolTable;
     SymbolTable symtab;
     SymbolTable shltab;
-};
+  };
 
 } // memhook
 
