@@ -32,6 +32,8 @@ namespace memhook {
     pthread_mutex_t *GetPthreadMutex() { return &m_mutex; }
 
   private:
+    static void InitRecursiveMutex(pthread_mutex_t *mutex);
+
     pthread_mutex_t m_mutex;
   };
 

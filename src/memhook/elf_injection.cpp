@@ -110,7 +110,7 @@ namespace memhook {
         ElfW(Rela) *const rel_table_end = reinterpret_cast<ElfW(Rela) *>(
                 reinterpret_cast<char *>(rel_table) + rel_table_size);
 
-        for (ElfW(Rela) *rel = rel_table; rel < rel_table_end; rel++) {
+        for (ElfW(Rela) *rel = rel_table; rel < rel_table_end; ++rel) {
           const ElfW(Word) sym_index =
 #ifdef __x86_64__
                   ELF64_R_SYM(rel->r_info)

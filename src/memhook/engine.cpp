@@ -16,7 +16,7 @@ namespace memhook {
 
     m_callstack_unwinder.Initialize();
 
-    m_cache_flush_timeout = boost::chrono::seconds(2);
+    m_cache_flush_timeout = chrono::seconds(2);
     try {
       const char *cache_flush_timeout_env = getenv("MEMHOOK_CACHE_FLUSH_TIMEOUT");
       if (cache_flush_timeout_env) {
@@ -166,28 +166,28 @@ namespace memhook {
     m_callstack_unwinder.FlushCallStackCache();
   }
 
-  void Engine::HookAlloc(void *mem, size_t memsize) {
+  void Engine::HookAlloc(void *mem, size_t memsize) MEMHOOK_NOEXCEPT {
     boost::intrusive_ptr<Engine> instance = GetInstance();
     if (BOOST_LIKELY(instance != NULL)) {
       instance->DoHookAlloc(mem, memsize);
     }
   }
 
-  void Engine::HookFree(void *mem) {
+  void Engine::HookFree(void *mem) MEMHOOK_NOEXCEPT {
     boost::intrusive_ptr<Engine> instance = GetInstance();
     if (BOOST_LIKELY(instance != NULL)) {
       instance->DoHookFree(mem);
     }
   }
 
-  void Engine::HookUpdateSize(void *mem, size_t newsize) {
+  void Engine::HookUpdateSize(void *mem, size_t newsize) MEMHOOK_NOEXCEPT {
     boost::intrusive_ptr<Engine> instance = GetInstance();
     if (BOOST_LIKELY(instance != NULL)) {
       instance->DoHookUpdateSize(mem, newsize);
     }
   }
 
-  void Engine::FlushCallStackCache() {
+  void Engine::FlushCallStackCache() MEMHOOK_NOEXCEPT {
     boost::intrusive_ptr<Engine> instance = GetInstance();
     if (BOOST_LIKELY(instance != NULL)) {
       instance->DoFlushCallStackCache();

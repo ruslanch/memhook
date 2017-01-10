@@ -136,7 +136,13 @@ namespace memhook
   }
 
   void do_cpp_free(void *mem) MEMHOOK_NOEXCEPT {
-    do_free(mem);
+    if (NoHook::IsNested()) {
+      do_free(mem);
+    } else {
+      NoHook no_hook;
+      Engine::HookFree(mem);
+      do_free(mem);
+    }
   }
 
   void *do_dlopen(const char *file, int mode) {
@@ -587,6 +593,12 @@ MEMHOOK_API void *__libc_valloc(size_t size)                   MEMHOOK_NOEXCEPT 
 #if (HAVE_PVALLOC + 0)
 MEMHOOK_API void *__libc_pvalloc(size_t size)                  MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_pvalloc);
 #endif
+
+MEMHOOK_API void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+        off_t offset)                                          MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_mmap);
+MEMHOOK_API void *mmap64(void *addr, size_t length, int prot, int flags, int fd,
+        off64_t offset)                                        MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_mmap64);
+MEMHOOK_API int munmap(void *addr, size_t length)              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_munmap);
 
 MEMHOOK_API void *dlopen(const char *file, int mode)                            MEMHOOK_ALIAS_USED(memhook_dlopen);
 MEMHOOK_API void *dlmopen(Lmid_t nsid, const char *file, int mode)              MEMHOOK_ALIAS_USED(memhook_dlmopen);

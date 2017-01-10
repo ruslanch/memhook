@@ -18,16 +18,21 @@ namespace memhook {
 
   Mutex::Mutex()
       : m_mutex() {
-    pthread_mutexattr_t mutexattr;
-    EXPECT_SUCCEEDED(pthread_mutexattr_init(&mutexattr));
-    EXPECT_SUCCEEDED(pthread_mutexattr_settype(&mutexattr,
-            PTHREAD_MUTEX_RECURSIVE));
-    EXPECT_SUCCEEDED(pthread_mutex_init(&m_mutex, &mutexattr));
-    EXPECT_SUCCEEDED(pthread_mutexattr_destroy(&mutexattr));
+    InitRecursiveMutex(&m_mutex);
   }
 
   Mutex::~Mutex() {
     BOOST_VERIFY(CHECK_SUCCEEDED(pthread_mutex_destroy(&m_mutex)));
+  }
+
+  void Mutex::InitRecursiveMutex(pthread_mutex_t *mutex)
+  {
+    pthread_mutexattr_t mutexattr;
+    EXPECT_SUCCEEDED(pthread_mutexattr_init(&mutexattr));
+    EXPECT_SUCCEEDED(pthread_mutexattr_settype(&mutexattr,
+            PTHREAD_MUTEX_RECURSIVE));
+    EXPECT_SUCCEEDED(pthread_mutex_init(mutex, &mutexattr));
+    EXPECT_SUCCEEDED(pthread_mutexattr_destroy(&mutexattr));
   }
 
   void Mutex::Lock() {
