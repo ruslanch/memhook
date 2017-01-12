@@ -581,24 +581,24 @@ extern "C" {
     return do_getpwnam_r(name, resultbuf, buffer, buflen, result);
   }
 
-MEMHOOK_API void *malloc(size_t size)                          MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_malloc);
-MEMHOOK_API void free(void *ptr)                               MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_free);
-MEMHOOK_API void *realloc(void *ptr, size_t size)              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_realloc);
-MEMHOOK_API void *calloc(size_t n, size_t size)                MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_calloc);
-MEMHOOK_API void cfree(void *ptr)                              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_cfree);
-MEMHOOK_API void *memalign(size_t align, size_t s)             MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_memalign);
-MEMHOOK_API int posix_memalign(void **r, size_t a, size_t s)   MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_posix_memalign);
+MEMHOOK_API void *malloc(size_t size)                          MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_malloc);
+MEMHOOK_API void free(void *ptr)                               MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_free);
+MEMHOOK_API void *realloc(void *ptr, size_t size)              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_realloc);
+MEMHOOK_API void *calloc(size_t n, size_t size)                MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_calloc);
+MEMHOOK_API void cfree(void *ptr)                              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_cfree);
+MEMHOOK_API void *memalign(size_t align, size_t s)             MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_memalign);
+MEMHOOK_API int posix_memalign(void **r, size_t a, size_t s)   MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_posix_memalign);
 
 #if (HAVE_ALIGNED_ALLOC + 0)
-MEMHOOK_API void *aligned_alloc(size_t alignment, size_t size) MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_aligned_alloc);
+MEMHOOK_API void *aligned_alloc(size_t alignment, size_t size) MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_aligned_alloc);
 #endif
 
 #if (HAVE_VALLOC + 0)
-MEMHOOK_API void *valloc(size_t size)                          MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_valloc);
+MEMHOOK_API void *valloc(size_t size)                          MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_valloc);
 #endif
 
 #if (HAVE_PVALLOC + 0)
-MEMHOOK_API void *pvalloc(size_t size)                         MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_pvalloc);
+MEMHOOK_API void *pvalloc(size_t size)                         MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_pvalloc);
 #endif
 
 MEMHOOK_API void *__libc_malloc(size_t size)                                    MEMHOOK_ALIAS(memhook_malloc);
@@ -618,42 +618,42 @@ MEMHOOK_API void *__libc_pvalloc(size_t size)                  MEMHOOK_NOEXCEPT 
 #endif
 
 MEMHOOK_API void *mmap(void *addr, size_t length, int prot, int flags, int fd,
-        off_t offset)                                          MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_mmap);
+        off_t offset)                                          MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_mmap);
 MEMHOOK_API void *mmap64(void *addr, size_t length, int prot, int flags, int fd,
-        off64_t offset)                                        MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_mmap64);
-MEMHOOK_API int munmap(void *addr, size_t length)              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_munmap);
+        off64_t offset)                                        MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_mmap64);
+MEMHOOK_API int munmap(void *addr, size_t length)              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_munmap);
 MEMHOOK_API void *mremap(void *addr, size_t old_len, size_t new_len,
-        int flags, ...)                                        MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_mremap);
+        int flags, ...)                                        MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_mremap);
 
-MEMHOOK_API void *dlopen(const char *file, int mode)                            MEMHOOK_ALIAS_USED(memhook_dlopen);
-MEMHOOK_API void *dlmopen(Lmid_t nsid, const char *file, int mode)              MEMHOOK_ALIAS_USED(memhook_dlmopen);
-MEMHOOK_API int dlclose(void *handle)                                           MEMHOOK_ALIAS_USED(memhook_dlclose);
+MEMHOOK_API void *dlopen(const char *file, int mode)                            MEMHOOK_ALIAS(memhook_dlopen);
+MEMHOOK_API void *dlmopen(Lmid_t nsid, const char *file, int mode)              MEMHOOK_ALIAS(memhook_dlmopen);
+MEMHOOK_API int dlclose(void *handle)                                           MEMHOOK_ALIAS(memhook_dlclose);
 MEMHOOK_API int dl_iterate_phdr(int (*callback)(struct dl_phdr_info *info, size_t size, void *data),
-        void *data)                                                             MEMHOOK_ALIAS_USED(memhook_dl_iterate_phdr);
-MEMHOOK_API void *dlsym(void *handle, const char *name)                         MEMHOOK_ALIAS_USED(memhook_dlsym);
+        void *data)                                                             MEMHOOK_ALIAS(memhook_dl_iterate_phdr);
+MEMHOOK_API void *dlsym(void *handle, const char *name)                         MEMHOOK_ALIAS(memhook_dlsym);
 
 #if (HAVE_DLVSYM + 0)
-MEMHOOK_API void *dlvsym(void *handle, const char *name, const char *version)   MEMHOOK_ALIAS_USED(memhook_dlvsym);
+MEMHOOK_API void *dlvsym(void *handle, const char *name, const char *version)   MEMHOOK_ALIAS(memhook_dlvsym);
 #endif
 
 MEMHOOK_API int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints,
-        struct addrinfo **res)                                                 MEMHOOK_ALIAS_USED(memhook_getaddrinfo);
+        struct addrinfo **res)                                                 MEMHOOK_ALIAS(memhook_getaddrinfo);
 MEMHOOK_API int getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, socklen_t hostlen, char *serv,
         socklen_t servlen,
 #if (__GLIBC_MINOR__ <= 12)
         unsigned
 #endif
-        int flags)                                                              MEMHOOK_ALIAS_USED(memhook_getnameinfo);
+        int flags)                                                              MEMHOOK_ALIAS(memhook_getnameinfo);
 MEMHOOK_API struct hostent *gethostbyaddr(const void *addr,
-        socklen_t len, int type)                                                MEMHOOK_ALIAS_USED(memhook_gethostbyaddr);
-MEMHOOK_API struct hostent *gethostbyname(const char *name)                     MEMHOOK_ALIAS_USED(memhook_gethostbyname);
-MEMHOOK_API struct hostent *gethostbyname2(const char *name, int af)            MEMHOOK_ALIAS_USED(memhook_gethostbyname2);
+        socklen_t len, int type)                                                MEMHOOK_ALIAS(memhook_gethostbyaddr);
+MEMHOOK_API struct hostent *gethostbyname(const char *name)                     MEMHOOK_ALIAS(memhook_gethostbyname);
+MEMHOOK_API struct hostent *gethostbyname2(const char *name, int af)            MEMHOOK_ALIAS(memhook_gethostbyname2);
 
 MEMHOOK_API int gethostent_r(struct hostent *result_buf,
         char *buf,
         size_t buflen,
         struct hostent **result,
-        int *h_errnop) MEMHOOK_ALIAS_USED(memhook_gethostent_r);
+        int *h_errnop) MEMHOOK_ALIAS(memhook_gethostent_r);
 
 MEMHOOK_API int gethostbyaddr_r(const void *addr,
         socklen_t len,
@@ -662,14 +662,14 @@ MEMHOOK_API int gethostbyaddr_r(const void *addr,
         char *buf,
         size_t buflen,
         struct hostent **result,
-        int *h_errnop) MEMHOOK_ALIAS_USED(memhook_gethostbyaddr_r);
+        int *h_errnop) MEMHOOK_ALIAS(memhook_gethostbyaddr_r);
 
 MEMHOOK_API int gethostbyname_r(const char *name,
         struct hostent *result_buf,
         char *buf,
         size_t buflen,
         struct hostent **result,
-        int *h_errnop) MEMHOOK_ALIAS_USED(memhook_gethostbyname_r);
+        int *h_errnop) MEMHOOK_ALIAS(memhook_gethostbyname_r);
 
 MEMHOOK_API int gethostbyname2_r(const char *name,
         int af,
@@ -677,42 +677,42 @@ MEMHOOK_API int gethostbyname2_r(const char *name,
         char *buf,
         size_t buflen,
         struct hostent **result,
-        int *h_errnop) MEMHOOK_ALIAS_USED(memhook_gethostbyname2_r);
+        int *h_errnop) MEMHOOK_ALIAS(memhook_gethostbyname2_r);
 
 MEMHOOK_API int getpwent_r(struct passwd *resultbuf,
         char *buffer,
         size_t buflen,
-        struct passwd **result) MEMHOOK_ALIAS_USED(memhook_getpwent_r);
+        struct passwd **result) MEMHOOK_ALIAS(memhook_getpwent_r);
 
 MEMHOOK_API int getpwuid_r(uid_t uid,
         struct passwd *resultbuf,
         char *buffer,
         size_t buflen,
-        struct passwd **result) MEMHOOK_ALIAS_USED(memhook_getpwuid_r);
+        struct passwd **result) MEMHOOK_ALIAS(memhook_getpwuid_r);
 
 MEMHOOK_API int getpwnam_r(const char *name,
         struct passwd *resultbuf,
         char *buffer,
         size_t buflen,
-        struct passwd **result) MEMHOOK_ALIAS_USED(memhook_getpwnam_r);
+        struct passwd **result) MEMHOOK_ALIAS(memhook_getpwnam_r);
 } // extern "C"
 
 MEMHOOK_API void* operator new(size_t size)
-        MEMHOOK_THROW(std::bad_alloc) MEMHOOK_ALIAS_USED(memhook_new);
+        MEMHOOK_THROW(std::bad_alloc) MEMHOOK_ALIAS(memhook_new);
 MEMHOOK_API void operator delete(void* p)
-        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_delete);
+        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS(memhook_delete);
 MEMHOOK_API void* operator new[](size_t size)
-        MEMHOOK_THROW(std::bad_alloc) MEMHOOK_ALIAS_USED(memhook_newarray);
+        MEMHOOK_THROW(std::bad_alloc) MEMHOOK_ALIAS(memhook_newarray);
 MEMHOOK_API void operator delete[](void* p)
-        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_deletearray);
+        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS(memhook_deletearray);
 MEMHOOK_API void* operator new(size_t size, const std::nothrow_t& nt)
-        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_new_nothrow);
+        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS(memhook_new_nothrow);
 MEMHOOK_API void* operator new[](size_t size, const std::nothrow_t& nt)
-        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_newarray_nothrow);
+        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS(memhook_newarray_nothrow);
 MEMHOOK_API void operator delete(void* p, const std::nothrow_t& nt)
-        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_delete_nothrow);
+        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS(memhook_delete_nothrow);
 MEMHOOK_API void operator delete[](void* p, const std::nothrow_t& nt)
-        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_deletearray_nothrow);
+        MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS(memhook_deletearray_nothrow);
 
 // void operator delete(void *p, size_t size)   MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS(memhook_delete_sized);
 // void operator delete[](void *p, size_t size) MEMHOOK_USE_NOEXCEPT MEMHOOK_ALIAS(memhook_deletearray_sized);

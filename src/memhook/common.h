@@ -13,8 +13,7 @@
 #endif
 
 #define MEMHOOK_API __attribute__((__visibility__("default")))
-#define MEMHOOK_ALIAS_USED(fn) __attribute__((alias(#fn), used))
-#define MEMHOOK_ALIAS(fn) __attribute__((alias(#fn)))
+#define MEMHOOK_ALIAS(fn) __attribute__((alias(#fn), used))
 
 #ifdef BOOST_NO_CXX11_NOEXCEPT
 #  define MEMHOOK_NOEXCEPT
