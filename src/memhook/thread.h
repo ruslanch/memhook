@@ -254,7 +254,7 @@ namespace memhook {
         , m_sleep_cond() {}
 
     void Interrupt();
-    bool IsInterruptionRequested() { return (Release_Load(&m_interrupted) != 0); }
+    bool IsInterruptionRequested() { return (Acquire_Load(&m_interrupted) != 0); }
 
     bool SleepUntil(const timespec &abs_time);
     bool SleepFor(const timespec &rel_time);

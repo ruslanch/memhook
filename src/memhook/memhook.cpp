@@ -81,17 +81,26 @@ namespace memhook
 #endif
 
   void *do_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
-      MEMHOOK_NOEXCEPT {
+          MEMHOOK_NOEXCEPT {
     return GetDLFunctions().mmap(addr, length, prot, flags, fd, offset);
   }
 
   void *do_mmap64(void *addr, size_t length, int prot, int flags, int fd, off64_t offset)
-      MEMHOOK_NOEXCEPT {
+          MEMHOOK_NOEXCEPT {
     return GetDLFunctions().mmap64(addr, length, prot, flags, fd, offset);
   }
 
+  void *do_mremap(void *addr, size_t old_len, size_t new_len, int flags, ...)
+          MEMHOOK_NOEXCEPT {
+    va_list ap;
+    va_start(ap, flags);
+    void *new_addr_arg = va_arg(ap, void *);
+    va_end(ap);
+    return GetDLFunctions().mremap(addr, old_len, new_len, flags, new_addr_arg);
+  }
+
   int do_munmap(void *addr, size_t length)
-      MEMHOOK_NOEXCEPT {
+          MEMHOOK_NOEXCEPT {
     return GetDLFunctions().munmap(addr, length);
   }
 
@@ -267,9 +276,8 @@ extern "C" {
     if (NoHook::IsNested())
       return do_realloc(old_mem, size);
     NoHook no_hook;
-    Engine::HookFree(old_mem);
     void *new_mem = do_realloc(old_mem, size);
-    Engine::HookAlloc(new_mem, size);
+    Engine::HookRealloc(old_mem, new_mem, size);
     return new_mem;
   }
 
@@ -366,6 +374,21 @@ extern "C" {
       Engine::HookFree(addr);
     }
     return rs;
+  }
+
+  void *memhook_mremap(void *addr, size_t old_len, size_t new_len, int flags, ...) MEMHOOK_NOEXCEPT {
+    va_list ap;
+    va_start(ap, flags);
+    void *new_addr_arg = va_arg(ap, void *);
+    va_end(ap);
+    if (NoHook::IsNested())
+      return do_mremap(addr, old_len, new_len, flags, new_addr_arg);
+    NoHook no_hook;
+    void* new_addr = do_mremap(addr, old_len, new_len, flags, new_addr_arg);
+    if (new_addr != MAP_FAILED) {
+      Engine::HookRealloc(addr, new_addr, new_len);
+    }
+    return new_addr;
   }
 
   void* memhook_new(size_t size) MEMHOOK_THROW(std::bad_alloc) {
@@ -599,6 +622,8 @@ MEMHOOK_API void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 MEMHOOK_API void *mmap64(void *addr, size_t length, int prot, int flags, int fd,
         off64_t offset)                                        MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_mmap64);
 MEMHOOK_API int munmap(void *addr, size_t length)              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_munmap);
+MEMHOOK_API void *mremap(void *addr, size_t old_len, size_t new_len,
+        int flags, ...)                                        MEMHOOK_NOEXCEPT MEMHOOK_ALIAS_USED(memhook_mremap);
 
 MEMHOOK_API void *dlopen(const char *file, int mode)                            MEMHOOK_ALIAS_USED(memhook_dlopen);
 MEMHOOK_API void *dlmopen(Lmid_t nsid, const char *file, int mode)              MEMHOOK_ALIAS_USED(memhook_dlmopen);

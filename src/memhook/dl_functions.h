@@ -26,6 +26,7 @@ namespace memhook {
 
     typedef void *(*mmap_t)(void *, size_t, int, int, int, off_t);
     typedef void *(*mmap64_t)(void *, size_t, int, int, int, off64_t);
+    typedef void *(*mremap_t)(void *, size_t, size_t, int, ...);
     typedef int (*munmap_t)(void *, size_t);
 
     typedef void *(*dlopen_t)(const char *, int);
@@ -104,6 +105,7 @@ namespace memhook {
 
     mmap_t mmap;
     mmap64_t mmap64;
+    mremap_t mremap;
     munmap_t munmap;
 
     /* we override these functions because otherwise we get a deadlock on dlopen(...)

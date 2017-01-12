@@ -117,7 +117,7 @@ namespace memhook {
   }
 
   void InterruptibleThread::Interrupt() {
-    Acquire_Store(&m_interrupted, 1);
+    Release_Store(&m_interrupted, 1);
     MutexLock lock(m_sleep_mutex);
     m_sleep_cond.WakeUpAll();
   }

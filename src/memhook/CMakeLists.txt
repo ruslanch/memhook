@@ -23,6 +23,7 @@ add_definitions(
 add_library(memhook SHARED
   boost_chrono.cpp
   boost_error_code.cpp
+  atomic-asm-x86.cpp
   static_buf_alloc.cpp
   log.cpp
   dl_functions.cpp

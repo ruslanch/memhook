@@ -30,12 +30,14 @@ namespace memhook {
 
     static void HookAlloc(void *mem, size_t memsize) MEMHOOK_NOEXCEPT;
     static void HookFree(void *mem) MEMHOOK_NOEXCEPT;
+    static void HookRealloc(void *old_mem, void *new_mem, size_t new_size) MEMHOOK_NOEXCEPT;
     static void HookUpdateSize(void *mem, size_t newsize) MEMHOOK_NOEXCEPT;
     static void FlushCallStackCache() MEMHOOK_NOEXCEPT;
 
   protected:
     void DoHookAlloc(void *mem, size_t memsize);
     void DoHookFree(void *mem);
+    void DoHookRealloc(void *old_mem, void *new_mem, size_t new_size);
     void DoHookUpdateSize(void *mem, size_t newsize);
     void DoFlushCallStackCache();
 

@@ -76,6 +76,7 @@ namespace memhook {
 
     DLSymRtldNext(this->mmap,   "mmap");
     DLSymRtldNext(this->mmap64, "mmap64");
+    DLSymRtldNext(this->mremap, "mremap");
     DLSymRtldNext(this->munmap, "munmap");
 
     DLSymRtldNext(this->dlopen,           "dlopen");

@@ -59,14 +59,25 @@ namespace memhook {
     }
 
     int32_t GetSpinLockDelayNS(int loop) {
-      static Atomic32 rand = 0;
+#ifdef MEMHOOK_HAVE_ATOMIC64
+      static Atomic64 rand;
+      uint64_t r = static_cast<uint64_t>(NoBarrier_Load(&rand));
+      r = 0x5deece66dLL * r + 0xb;
+      NoBarrier_Store(&rand, r);
+      r <<= 16;
+      if (loop < 0 || loop > 32)
+        loop = 32;
+      return r >> (44 - (loop >> 3));
+#else
+      static Atomic32 rand;
       uint32_t r = static_cast<uint32_t>(NoBarrier_Load(&rand));
       r = 0x343fd * r + 0x269ec3;
-      NoBarrier_Store(&rand, static_cast<Atomic32>(r));
+      NoBarrier_Store(&rand, r);
       r <<= 1;
       if (loop < 0 || loop > 32)
         loop = 32;
       return r >> (12 - (loop >> 3));
+#endif
     }
 
     void SpinLockDelay(volatile Atomic32 *ptr, int32_t value, uint32_t loop) {

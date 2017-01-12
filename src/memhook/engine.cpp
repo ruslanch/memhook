@@ -83,6 +83,15 @@ namespace memhook {
     }
   }
 
+  void Engine::DoHookRealloc(void *old_mem, void *new_mem, size_t new_size) {
+    if (old_mem == new_mem) {
+      DoHookUpdateSize(old_mem, new_size);
+    } else {
+      DoHookFree (old_mem);
+      DoHookAlloc(new_mem, new_size);
+    }
+  }
+
   void Engine::DoHookUpdateSize(void *mem, size_t newsize) {
     if (BOOST_UNLIKELY(mem == NULL))
       return;
@@ -177,6 +186,13 @@ namespace memhook {
     boost::intrusive_ptr<Engine> instance = GetInstance();
     if (BOOST_LIKELY(instance != NULL)) {
       instance->DoHookFree(mem);
+    }
+  }
+
+  void Engine::HookRealloc(void *old_mem, void *new_mem, size_t new_size) MEMHOOK_NOEXCEPT {
+    boost::intrusive_ptr<Engine> instance = GetInstance();
+    if (BOOST_LIKELY(instance != NULL)) {
+      instance->DoHookRealloc(old_mem, new_mem, new_size);
     }
   }
 
