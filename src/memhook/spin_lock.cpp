@@ -45,7 +45,7 @@ namespace memhook {
           g_adaptive_spin_count = 1000;
 
         int x = 0;
-        g_have_futex = (sizeof(Atomic32) == sizeof(int) &&
+        g_have_futex = (sizeof(atomic32_t) == sizeof(int) &&
                         SysFutex(&x, FUTEX_WAKE, 1, NULL, NULL, 0) >= 0);
         if (g_have_futex && SysFutex(&x, FUTEX_WAKE | g_futex_private_flag, 1, NULL, NULL, 0) < 0)
           g_futex_private_flag = 0;
@@ -60,7 +60,7 @@ namespace memhook {
 
     int32_t GetSpinLockDelayNS(int loop) {
 #ifdef MEMHOOK_HAVE_ATOMIC64
-      static Atomic64 rand;
+      static atomic64_t rand;
       uint64_t r = static_cast<uint64_t>(NoBarrier_Load(&rand));
       r = 0x5deece66dLL * r + 0xb;
       NoBarrier_Store(&rand, r);
@@ -69,7 +69,7 @@ namespace memhook {
         loop = 32;
       return r >> (44 - (loop >> 3));
 #else
-      static Atomic32 rand;
+      static atomic32_t rand;
       uint32_t r = static_cast<uint32_t>(NoBarrier_Load(&rand));
       r = 0x343fd * r + 0x269ec3;
       NoBarrier_Store(&rand, r);
@@ -80,7 +80,7 @@ namespace memhook {
 #endif
     }
 
-    void SpinLockDelay(volatile Atomic32 *ptr, int32_t value, uint32_t loop) {
+    void SpinLockDelay(volatile atomic32_t *ptr, int32_t value, uint32_t loop) {
       int saved_errno = errno;
       if (loop == 0) {
         // do nothing
@@ -101,7 +101,7 @@ namespace memhook {
         tm.tv_nsec = GetSpinLockDelayNS(loop);
         if (g_have_futex) {
           tm.tv_nsec *= 32;
-          SysFutex(reinterpret_cast<int *>(const_cast<Atomic32 *>(ptr)),
+          SysFutex(reinterpret_cast<int *>(const_cast<atomic32_t *>(ptr)),
                   FUTEX_WAIT | g_futex_private_flag, value, &tm, NULL, 0);
         } else {
           nanosleep(&tm, NULL);
@@ -110,16 +110,16 @@ namespace memhook {
       errno = saved_errno;
     }
 
-    void SpinLockWake(volatile Atomic32 *ptr, bool all) {
+    void SpinLockWake(volatile atomic32_t *ptr, bool all) {
       if (g_have_futex) {
-        SysFutex(reinterpret_cast<int *>(const_cast<Atomic32 *>(ptr)),
+        SysFutex(reinterpret_cast<int *>(const_cast<atomic32_t *>(ptr)),
                   FUTEX_WAKE | g_futex_private_flag, all ? INT_MAX : 1,
                   NULL, NULL, 0);
       }
     }
   }
 
-  Atomic32 SpinLock::SpinLoop() {
+  atomic32_t SpinLock::SpinLoop() {
     int32_t c = g_adaptive_spin_count;
     while (NoBarrier_Load(&m_lock_value) != kSpinLockFree && --c > 0)
       SpinLockPause();
@@ -127,7 +127,7 @@ namespace memhook {
   }
 
   void SpinLock::SlowLock() {
-    Atomic32 lock_value = SpinLoop();
+    atomic32_t lock_value = SpinLoop();
     for (int32_t loop = 0; lock_value != kSpinLockFree;) {
       if (lock_value == kSpinLockHeld) {
         lock_value = Acquire_CompareAndSwap(&m_lock_value, kSpinLockHeld, kSpinLockSleeper);

@@ -272,7 +272,7 @@ namespace memhook {
     }
 
   private:
-    Atomic32          m_interrupted;
+    atomic32_t        m_interrupted;
     Mutex             m_sleep_mutex;
     ConditionVariable m_sleep_cond;
   };

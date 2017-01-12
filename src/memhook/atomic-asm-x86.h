@@ -4,48 +4,42 @@
 #define COMPILER_BARRIER() __asm__ __volatile__("" : : : "memory")
 
 namespace memhook {
-  struct AtomicOps_x86CPUFeatures {
-    bool has_amd_lock_mb_bug;
-  };
-
-  extern AtomicOps_x86CPUFeatures g_AtomicOps_x86CPUFeatures;
-
-  typedef int32_t Atomic32;
+  typedef int32_t atomic32_t;
 
   inline void MemoryBarrier() {
     __asm__ __volatile__("mfence" : : : "memory");
   }
 
-  inline Atomic32 NoBarrier_Load(const volatile Atomic32 *ptr) {
+  inline atomic32_t NoBarrier_Load(const volatile atomic32_t *ptr) {
     return *ptr;
   }
 
-  inline Atomic32 Release_Load(const volatile Atomic32 *ptr) {
+  inline atomic32_t Release_Load(const volatile atomic32_t *ptr) {
     MemoryBarrier();
     return *ptr;
   }
 
-  inline Atomic32 Acquire_Load(const volatile Atomic32 *ptr) {
-    Atomic32 value = *ptr;
+  inline atomic32_t Acquire_Load(const volatile atomic32_t *ptr) {
+    atomic32_t value = *ptr;
     COMPILER_BARRIER();
     return value;
   }
 
-  inline void NoBarrier_Store(volatile Atomic32 *ptr, Atomic32 value) {
+  inline void NoBarrier_Store(volatile atomic32_t *ptr, atomic32_t value) {
     *ptr = value;
   }
 
-  inline void Release_Store(volatile Atomic32 *ptr, Atomic32 value) {
+  inline void Release_Store(volatile atomic32_t *ptr, atomic32_t value) {
     COMPILER_BARRIER();
     *ptr = value;
   }
 
-  inline void Acquire_Store(volatile Atomic32 *ptr, Atomic32 value) {
+  inline void Acquire_Store(volatile atomic32_t *ptr, atomic32_t value) {
     *ptr = value;
     MemoryBarrier();
   }
 
-  inline Atomic32 NoBarrier_AtomicExchange(volatile Atomic32* ptr, Atomic32 new_value) {
+  inline atomic32_t NoBarrier_AtomicExchange(volatile atomic32_t* ptr, atomic32_t new_value) {
     __asm__ __volatile__("xchgl %1,%0"
                          : "=r" (new_value)
                          : "m" (*ptr), "0" (new_value)
@@ -53,18 +47,18 @@ namespace memhook {
     return new_value;
   }
 
-  inline Atomic32 Release_AtomicExchange(volatile Atomic32* ptr, Atomic32 new_value) {
+  inline atomic32_t Release_AtomicExchange(volatile atomic32_t* ptr, atomic32_t new_value) {
     return NoBarrier_AtomicExchange(ptr, new_value);
   }
 
-  inline Atomic32 Acquire_AtomicExchange(volatile Atomic32* ptr, Atomic32 new_value) {
-    Atomic32 prev = NoBarrier_AtomicExchange(ptr, new_value);
+  inline atomic32_t Acquire_AtomicExchange(volatile atomic32_t* ptr, atomic32_t new_value) {
+    atomic32_t prev = NoBarrier_AtomicExchange(ptr, new_value);
     return prev;
   }
 
-  inline Atomic32 NoBarrier_CompareAndSwap(volatile Atomic32* ptr,
-          Atomic32 old_value, Atomic32 new_value) {
-    Atomic32 prev;
+  inline atomic32_t NoBarrier_CompareAndSwap(volatile atomic32_t* ptr,
+          atomic32_t old_value, atomic32_t new_value) {
+    atomic32_t prev;
     __asm__ __volatile__("lock; cmpxchgl %1,%2"
                          : "=a" (prev)
                          : "q" (new_value), "m" (*ptr), "0" (old_value)
@@ -72,52 +66,49 @@ namespace memhook {
     return prev;
   }
 
-  inline Atomic32 Release_CompareAndSwap(volatile Atomic32 *ptr, Atomic32 old_value, Atomic32 new_value) {
+  inline atomic32_t Release_CompareAndSwap(volatile atomic32_t *ptr, atomic32_t old_value, atomic32_t new_value) {
     return NoBarrier_CompareAndSwap(ptr, old_value, new_value);
   }
 
-  inline Atomic32 Acquire_CompareAndSwap(volatile Atomic32 *ptr, Atomic32 old_value, Atomic32 new_value) {
-    Atomic32 prev = NoBarrier_CompareAndSwap(ptr, old_value, new_value);
-    if (g_AtomicOps_x86CPUFeatures.has_amd_lock_mb_bug) {
-      __asm__ __volatile__("lfence" : : : "memory");
-    }
+  inline atomic32_t Acquire_CompareAndSwap(volatile atomic32_t *ptr, atomic32_t old_value, atomic32_t new_value) {
+    atomic32_t prev = NoBarrier_CompareAndSwap(ptr, old_value, new_value);
     return prev;
   }
 
-#if defined(__x86_64__)
+#ifdef __x86_64__
 # define MEMHOOK_HAVE_ATOMIC64
-  typedef int64_t Atomic64;
+  typedef int64_t atomic64_t;
 
-  inline Atomic64 NoBarrier_Load(const volatile Atomic64 *ptr) {
+  inline atomic64_t NoBarrier_Load(const volatile atomic64_t *ptr) {
     return *ptr;
   }
 
-  inline Atomic64 Release_Load(const volatile Atomic64 *ptr) {
+  inline atomic64_t Release_Load(const volatile atomic64_t *ptr) {
     MemoryBarrier();
     return *ptr;
   }
 
-  inline Atomic64 Acquire_Load(const volatile Atomic64 *ptr) {
-    Atomic64 value = *ptr;
+  inline atomic64_t Acquire_Load(const volatile atomic64_t *ptr) {
+    atomic64_t value = *ptr;
     COMPILER_BARRIER();
     return value;
   }
 
-  inline void NoBarrier_Store(volatile Atomic64 *ptr, Atomic64 value) {
+  inline void NoBarrier_Store(volatile atomic64_t *ptr, atomic64_t value) {
     *ptr = value;
   }
 
-  inline void Release_Store(volatile Atomic64 *ptr, Atomic64 value) {
+  inline void Release_Store(volatile atomic64_t *ptr, atomic64_t value) {
     COMPILER_BARRIER();
     *ptr = value;
   }
 
-  inline void Acquire_Store(volatile Atomic64 *ptr, Atomic64 value) {
+  inline void Acquire_Store(volatile atomic64_t *ptr, atomic64_t value) {
     *ptr = value;
     MemoryBarrier();
   }
 
-  inline Atomic64 NoBarrier_AtomicExchange(volatile Atomic64 *ptr, Atomic64 new_value) {
+  inline atomic64_t NoBarrier_AtomicExchange(volatile atomic64_t *ptr, atomic64_t new_value) {
     __asm__ __volatile__("xchgq %1,%0"
                          : "=r" (new_value)
                          : "m" (*ptr), "0" (new_value)
@@ -125,18 +116,18 @@ namespace memhook {
     return new_value;
   }
 
-  inline Atomic64 Release_AtomicExchange(volatile Atomic64 *ptr, Atomic64 new_value) {
+  inline atomic64_t Release_AtomicExchange(volatile atomic64_t *ptr, atomic64_t new_value) {
     return NoBarrier_AtomicExchange(ptr, new_value);
   }
 
-  inline Atomic64 Acquire_AtomicExchange(volatile Atomic64 *ptr, Atomic64 new_value) {
-    Atomic64 prev = NoBarrier_AtomicExchange(ptr, new_value);
+  inline atomic64_t Acquire_AtomicExchange(volatile atomic64_t *ptr, atomic64_t new_value) {
+    atomic64_t prev = NoBarrier_AtomicExchange(ptr, new_value);
     return prev;
   }
 
-  inline Atomic64 NoBarrier_CompareAndSwap(volatile Atomic64 *ptr,
-          Atomic64 old_value, Atomic64 new_value) {
-    Atomic64 prev;
+  inline atomic64_t NoBarrier_CompareAndSwap(volatile atomic64_t *ptr,
+          atomic64_t old_value, atomic64_t new_value) {
+    atomic64_t prev;
     __asm__ __volatile__("lock; cmpxchgq %1,%2"
                          : "=a" (prev)
                          : "q" (new_value), "m" (*ptr), "0" (old_value)
@@ -144,15 +135,12 @@ namespace memhook {
     return prev;
   }
 
-  inline Atomic64 Release_CompareAndSwap(volatile Atomic64 *ptr, Atomic64 old_value, Atomic64 new_value) {
+  inline atomic64_t Release_CompareAndSwap(volatile atomic64_t *ptr, atomic64_t old_value, atomic64_t new_value) {
     return NoBarrier_CompareAndSwap(ptr, old_value, new_value);
   }
 
-  inline Atomic64 Acquire_CompareAndSwap(volatile Atomic64 *ptr, Atomic64 old_value, Atomic64 new_value) {
-    Atomic64 prev = NoBarrier_CompareAndSwap(ptr, old_value, new_value);
-    if (g_AtomicOps_x86CPUFeatures.has_amd_lock_mb_bug) {
-      __asm__ __volatile__("lfence" : : : "memory");
-    }
+  inline atomic64_t Acquire_CompareAndSwap(volatile atomic64_t *ptr, atomic64_t old_value, atomic64_t new_value) {
+    atomic64_t prev = NoBarrier_CompareAndSwap(ptr, old_value, new_value);
     return prev;
   }
 #endif

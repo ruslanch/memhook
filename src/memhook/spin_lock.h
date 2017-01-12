@@ -32,9 +32,9 @@ namespace memhook {
   private:
     void SlowLock();
     void SlowUnlock();
-    Atomic32 SpinLoop();
+    atomic32_t SpinLoop();
 
-    Atomic32 m_lock_value;
+    atomic32_t m_lock_value;
   };
 
   class SpinLockHolder {
