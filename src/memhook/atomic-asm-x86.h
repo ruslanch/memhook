@@ -52,8 +52,7 @@ namespace memhook {
   }
 
   inline atomic32_t Acquire_AtomicExchange(volatile atomic32_t* ptr, atomic32_t new_value) {
-    atomic32_t prev = NoBarrier_AtomicExchange(ptr, new_value);
-    return prev;
+    return NoBarrier_AtomicExchange(ptr, new_value);
   }
 
   inline atomic32_t NoBarrier_CompareAndSwap(volatile atomic32_t* ptr,
@@ -71,8 +70,7 @@ namespace memhook {
   }
 
   inline atomic32_t Acquire_CompareAndSwap(volatile atomic32_t *ptr, atomic32_t old_value, atomic32_t new_value) {
-    atomic32_t prev = NoBarrier_CompareAndSwap(ptr, old_value, new_value);
-    return prev;
+    return NoBarrier_CompareAndSwap(ptr, old_value, new_value);
   }
 
 #ifdef __x86_64__
@@ -121,8 +119,7 @@ namespace memhook {
   }
 
   inline atomic64_t Acquire_AtomicExchange(volatile atomic64_t *ptr, atomic64_t new_value) {
-    atomic64_t prev = NoBarrier_AtomicExchange(ptr, new_value);
-    return prev;
+    return NoBarrier_AtomicExchange(ptr, new_value);
   }
 
   inline atomic64_t NoBarrier_CompareAndSwap(volatile atomic64_t *ptr,
@@ -140,8 +137,7 @@ namespace memhook {
   }
 
   inline atomic64_t Acquire_CompareAndSwap(volatile atomic64_t *ptr, atomic64_t old_value, atomic64_t new_value) {
-    atomic64_t prev = NoBarrier_CompareAndSwap(ptr, old_value, new_value);
-    return prev;
+    return NoBarrier_CompareAndSwap(ptr, old_value, new_value);
   }
 #endif
 }
