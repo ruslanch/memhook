@@ -34,6 +34,7 @@ namespace memhook {
 #endif
       MAKE_WRAPPED_FUNCTION_INFO(mmap),
       MAKE_WRAPPED_FUNCTION_INFO(mmap64),
+      MAKE_WRAPPED_FUNCTION_INFO(mremap),
       MAKE_WRAPPED_FUNCTION_INFO(munmap),
       MAKE_WRAPPED_FUNCTION_INFO(dlopen),
       MAKE_WRAPPED_FUNCTION_INFO(dlmopen),

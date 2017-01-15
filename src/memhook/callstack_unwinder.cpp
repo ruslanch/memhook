@@ -241,7 +241,6 @@ namespace memhook {
     while (unw_step(&cursor) > 0 && --skip_frames > 0)
       ;
 
-    boost::container::string shl_path, procname;
     unw_word_t ip = 0;
     while (unw_step(&cursor) > 0) {
       unw_get_reg(&cursor, UNW_REG_IP, &ip);
