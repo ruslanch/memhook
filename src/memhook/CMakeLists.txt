@@ -25,6 +25,7 @@ add_library(memhook SHARED
   boost_error_code.cpp
   static_buf_alloc.cpp
   log.cpp
+  glibc.cpp
   dl_functions.cpp
   no_hook.cpp
   spin_lock.cpp

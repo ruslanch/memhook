@@ -73,6 +73,26 @@ namespace memhook {
     return NoBarrier_CompareAndSwap(ptr, old_value, new_value);
   }
 
+  inline atomic32_t NoBarrier_AtomicFetchAndAdd(volatile atomic32_t *ptr, atomic32_t value) {
+    atomic32_t temp = value;
+    __asm__ __volatile__("lock; xaddl %0,%1" : "+r"(temp), "+m"(*ptr) : : "memory");
+    return temp;
+  }
+
+  inline atomic32_t NoBarrier_AtomicAddAndFetch(volatile atomic32_t *ptr, atomic32_t value) {
+    atomic32_t temp = value;
+    __asm__ __volatile__("lock; xaddl %0,%1" : "+r"(temp), "+m"(*ptr) : : "memory");
+    return temp + value;
+  }
+
+  inline atomic32_t Barrier_AtomicFetchAndAdd(volatile atomic32_t *ptr, atomic32_t value) {
+    return NoBarrier_AtomicFetchAndAdd(ptr, value);
+  }
+
+  inline atomic32_t Barrier_AtomicAddAndFetch(volatile atomic32_t *ptr, atomic32_t value) {
+    return NoBarrier_AtomicFetchAndAdd(ptr, value);
+  }
+
 #ifdef __x86_64__
 # define MEMHOOK_HAVE_ATOMIC64
   typedef int64_t atomic64_t;
@@ -138,6 +158,26 @@ namespace memhook {
 
   inline atomic64_t Acquire_CompareAndSwap(volatile atomic64_t *ptr, atomic64_t old_value, atomic64_t new_value) {
     return NoBarrier_CompareAndSwap(ptr, old_value, new_value);
+  }
+
+  inline atomic64_t NoBarrier_AtomicFetchAndAdd(volatile atomic64_t *ptr, atomic64_t value) {
+    atomic64_t temp = value;
+    __asm__ __volatile__("lock; xaddq %0,%1" : "+r"(temp), "+m"(*ptr) : : "memory");
+    return temp;
+  }
+
+  inline atomic64_t NoBarrier_AtomicAddAndFetch(volatile atomic64_t *ptr, atomic64_t value) {
+    atomic64_t temp = value;
+    __asm__ __volatile__("lock; xaddq %0,%1" : "+r"(temp), "+m"(*ptr) : : "memory");
+    return temp + value;
+  }
+
+  inline atomic64_t Barrier_AtomicFetchAndAdd(volatile atomic64_t *ptr, atomic64_t value) {
+    return NoBarrier_AtomicFetchAndAdd(ptr, value);
+  }
+
+  inline atomic64_t Barrier_AtomicAddAndFetch(volatile atomic64_t *ptr, atomic64_t value) {
+    return NoBarrier_AtomicFetchAndAdd(ptr, value);
   }
 #endif
 }

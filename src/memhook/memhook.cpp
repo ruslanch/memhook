@@ -462,17 +462,21 @@ extern "C" {
     NoHook no_hook;
 
     if (BOOST_UNLIKELY(g_dl_functions.dlsym == NULL)) {
-      dlerror(); /* clear the previous error */
-      const DLFunctions::dlsym_t fn = (DLFunctions::dlsym_t)_dl_sym(RTLD_NEXT, "dlsym",
-              MEMHOOK_RETURN_ADDRESS(0)); /* _dl_sym only for RTLD_NEXT */
+      DLFunctions::dlsym_t fn = (DLFunctions::dlsym_t)GLIBC_find_dl_symbol("dlsym");
+      if (!fn) {
+        dlerror(); /* clear the previous error */
 
-      const char *const err_s = dlerror();
-      if (err_s)
-        LogPrintf(kERROR, "_dl_sym(RTLD_NEXT, \"dlsym\") failed: %s\n", err_s);
+        fn = (DLFunctions::dlsym_t)_dl_sym(RTLD_NEXT, "dlsym",
+                MEMHOOK_RETURN_ADDRESS(0)); /* _dl_sym only for RTLD_NEXT */
 
-      if (!fn)
-        /* may be unsafe, but does not do abort() */
-        return _dl_sym(handle, name, MEMHOOK_RETURN_ADDRESS(0));
+        const char *const err_s = dlerror();
+        if (err_s)
+          LogPrintf(kERROR, "_dl_sym(RTLD_NEXT, \"dlsym\") failed: %s\n", err_s);
+
+        if (!fn)
+          /* may be unsafe, but does not do abort() */
+          return _dl_sym(handle, name, MEMHOOK_RETURN_ADDRESS(0));
+      }
 
       g_dl_functions.dlsym = fn;
     }
@@ -484,22 +488,27 @@ extern "C" {
   void *memhook_dlvsym(void *handle, const char *name, const char *version) {
     /* dlsym(RTLD_NEXT, "dlsym") -> this function*/
     if (handle == RTLD_NEXT && strcmp(name, "dlvsym") == 0)
-      return (void *)&memhook_dlsym;
+      return (void *)&memhook_dlvsym;
 
     NoHook no_hook;
 
     if (BOOST_UNLIKELY(g_dl_functions.dlvsym == NULL)) {
-      dlerror(); /* clear the previous error */
-      const DLFunctions::dlvsym_t fn = (DLFunctions::dlvsym_t)_dl_sym(RTLD_NEXT, "dlvsym",
-              MEMHOOK_RETURN_ADDRESS(0)); /* _dl_sym only for RTLD_NEXT */
-
-      const char *const err_s = dlerror();
-      if (err_s)
-        LogPrintf(kERROR, "_dl_sym(RTLD_NEXT, \"dlvsym\") failed: %s\n", err_s);
-
+      DLFunctions::dlvsym_t fn = (DLFunctions::dlvsym_t)GLIBC_find_dl_symbol("dlvsym");
       if (!fn)
-        /* may be unsafe, but does not do abort() */
-        return _dl_vsym(handle, name, version, MEMHOOK_RETURN_ADDRESS(0));
+      {
+        dlerror(); /* clear the previous error */
+
+        fn = (DLFunctions::dlvsym_t)_dl_sym(RTLD_NEXT, "dlvsym",
+                MEMHOOK_RETURN_ADDRESS(0)); /* _dl_sym only for RTLD_NEXT */
+
+        const char *const err_s = dlerror();
+        if (err_s)
+          LogPrintf(kERROR, "_dl_sym(RTLD_NEXT, \"dlvsym\") failed: %s\n", err_s);
+
+        if (!fn)
+          /* may be unsafe, but does not do abort() */
+          return _dl_vsym(handle, name, version, MEMHOOK_RETURN_ADDRESS(0));
+      }
 
       g_dl_functions.dlvsym = fn;
     }
@@ -629,7 +638,8 @@ MEMHOOK_API void *dlopen(const char *file, int mode)                            
 MEMHOOK_API void *dlmopen(Lmid_t nsid, const char *file, int mode)              MEMHOOK_ALIAS(memhook_dlmopen);
 MEMHOOK_API int dlclose(void *handle)                                           MEMHOOK_ALIAS(memhook_dlclose);
 MEMHOOK_API int dl_iterate_phdr(int (*callback)(struct dl_phdr_info *info, size_t size, void *data),
-        void *data)                                                             MEMHOOK_ALIAS(memhook_dl_iterate_phdr);
+       void *data)                                                              MEMHOOK_ALIAS(memhook_dl_iterate_phdr);
+
 MEMHOOK_API void *dlsym(void *handle, const char *name)                         MEMHOOK_ALIAS(memhook_dlsym);
 
 #if (HAVE_DLVSYM + 0)

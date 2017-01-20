@@ -6,8 +6,6 @@
 #include <malloc.h>
 #include <netdb.h>
 #include <pwd.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/mman.h> // mmap
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -37,13 +35,9 @@ extern dlfcn_hook *_dlfcn_hook;
 int _dl_addr(const void *address, Dl_info *info, struct link_map **mapp, const void **symbolp);
 void *_dl_sym(void *handle, const char *name, void *who);
 void *_dl_vsym(void *handle, const char *name, const char *version, void *who);
-int _dl_catch_error(const char **objname,
-        const char **errstring,
-        bool *mallocedp,
-        void (*operate)(void *),
-        void *args);
-int _dlerror_run(void (*operate)(void *), void *args);
 
 }  // extern "C"
+
+void *GLIBC_find_dl_symbol(const char *name);
 
 #endif

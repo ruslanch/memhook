@@ -1,6 +1,7 @@
 #include "elf_injection.h"
 #include "glibc.h"
 
+#include <string.h>
 #include <boost/core/ignore_unused.hpp>
 
 namespace memhook {

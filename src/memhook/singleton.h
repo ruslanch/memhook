@@ -2,9 +2,9 @@
 #define MEMHOOK_SRC_MEMHOOK_SINGLETON_H_INCLUDED
 
 #include "common.h"
+#include "atomic.h"
 
 #include <boost/intrusive_ptr.hpp>
-#include <boost/smart_ptr/detail/atomic_count.hpp>
 
 namespace memhook {
   template <typename T>
@@ -53,7 +53,7 @@ namespace memhook {
 
   template <typename T>
   class SingletonRefCounter {
-    mutable boost::detail::atomic_count ref_counter_;
+    mutable atomic32_t ref_counter_;
 
   public:
     SingletonRefCounter()
@@ -75,12 +75,12 @@ namespace memhook {
 
   template <typename T>
   inline void intrusive_ptr_add_ref(const SingletonRefCounter<T> *p) {
-    ++p->ref_counter_;
+    Barrier_AtomicFetchAndAdd(&p->ref_counter_, 1);
   }
 
   template <typename T>
   inline void intrusive_ptr_release(const SingletonRefCounter<T> *p) {
-    if (!--p->ref_counter_) {
+    if (!Barrier_AtomicAddAndFetch(&p->ref_counter_, -1)) {
       T *ptr = const_cast<T *>(static_cast<const T *>(p));
       ptr->OnDestroy();
       delete ptr;

@@ -9,17 +9,6 @@
 namespace memhook {
   namespace {
     template <typename F>
-    void DLSymRtldNext0(F *&dlfn, const char *name) {
-      dlerror();
-      F *const fn = (F *)_dl_sym(RTLD_NEXT, name, MEMHOOK_RETURN_ADDRESS(0));
-      const char *const err_s = dlerror();
-      if (BOOST_UNLIKELY(err_s != NULL))
-        LogPrintf(kERROR, "dlsym() failed: %s\n", err_s);
-      MEMHOOK_EXPECT(fn != NULL);
-      dlfn = fn;
-    }
-
-    template <typename F>
     void DLSymRtldNext(F *&dlfn, const char *name) {
       dlerror();
       F *const fn = (F *)dlsym(RTLD_NEXT, name);
@@ -38,11 +27,6 @@ namespace memhook {
     this->free    = &StaticBufAlloc::free;
     this->malloc  = &StaticBufAlloc::malloc;
     this->calloc  = &StaticBufAlloc::calloc;
-
-    DLSymRtldNext0(this->dlopen,          "dlopen");
-    DLSymRtldNext0(this->dlmopen,         "dlmopen");
-    DLSymRtldNext0(this->dlclose,         "dlclose");
-    DLSymRtldNext0(this->dl_iterate_phdr, "dl_iterate_phdr");
 
     free_t   tmp_free   = NULL;
     malloc_t tmp_malloc = NULL;

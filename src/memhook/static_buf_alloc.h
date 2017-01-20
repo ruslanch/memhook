@@ -14,7 +14,7 @@ namespace memhook {
     static void free(void* ptr);
 
   private:
-    static char tmpbuf_[1024];
+    static char tmpbuf_[8192];
     static size_t tmppos_;
   };
 

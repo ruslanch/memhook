@@ -4,7 +4,7 @@
 #include <cstring>
 
 namespace memhook {
-  char   StaticBufAlloc::tmpbuf_[1024];
+  char   StaticBufAlloc::tmpbuf_[8192];
   size_t StaticBufAlloc::tmppos_ = 0;
 
   void *StaticBufAlloc::malloc(size_t size) {

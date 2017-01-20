@@ -115,7 +115,14 @@ namespace memhook {
       return NewNetworkMappedStorage(ipc_name, ipc_port);
     }
 
-    size_t ipc_size = (8ul << 30);  // default 8 Gb
+    size_t ipc_size =
+#ifdef __x86_64__
+            (8ul << 30)  // default 8 Gb
+#else
+            (1ul << 30)  // default 1 Gb
+#endif
+            ;
+
     const char *ipc_size_env = getenv("MEMHOOK_SIZE_GB");
     if (ipc_size_env) {
       size_t new_ipc_size = strtoul(ipc_size_env, NULL, 10);
