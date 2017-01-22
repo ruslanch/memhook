@@ -194,8 +194,13 @@ namespace memhook {
     typedef boost::multi_index_container<
             UnwProcNameInfo,
             boost::multi_index::indexed_by<
-                    boost::multi_index::ordered_unique<boost::multi_index::
-                                    member<UnwProcNameInfo, unw_word_t, &UnwProcNameInfo::ip> >,
+                    boost::multi_index::ordered_unique<
+                            boost::multi_index::member<
+                                    UnwProcNameInfo,
+                                    unw_word_t,
+                                    &UnwProcNameInfo::ip
+                            >
+                    >,
                     boost::multi_index::sequenced<> > >
             UnwProcNameInfoMap;
 
@@ -204,7 +209,7 @@ namespace memhook {
     std::size_t m_cache_max_size;
 
     UnwProcNameInfoMap m_procname_info_map;
-    UnwShlPathMap m_shl_path_map;
+    UnwShlPathMap      m_shl_path_map;
 
     Mutex m_mutex;
   };
@@ -229,8 +234,9 @@ namespace memhook {
     m_impl.reset();
   }
 
-  void CallStackUnwinder::GetCallStackInfo(
-          CallStackInfo &callstack, size_t skip_frames, bool need_unwind_proc_info) {
+  void CallStackUnwinder::GetCallStackInfo(CallStackInfo &callstack,
+          size_t skip_frames,
+          bool need_unwind_proc_info) {
     callstack.clear();
 
     unw_cursor_t cursor;

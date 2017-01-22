@@ -5,9 +5,6 @@
 
 #include "common.h"
 
-#define ELFW(type) _ElfW(ELF, __ELF_NATIVE_CLASS, type)
-#define D_PTR(map, i) (map)->i->d_un.d_ptr
-
 struct GLIBC_link_map;
 
 extern "C" GLIBC_link_map *_dl_find_dso_for_object(const ElfW(Addr) addr);
@@ -80,8 +77,8 @@ struct GLIBC_link_map {
   ElfW(Addr) l_entry;
   ElfW(Half) l_phnum;
   ElfW(Half) l_ldnum;
-  GLIBC_r_scope_elem     l_searchlist;
-  GLIBC_r_scope_elem     l_symbolic_searchlist;
+  GLIBC_r_scope_elem            l_searchlist;
+  GLIBC_r_scope_elem            l_symbolic_searchlist;
   struct GLIBC_link_map        *l_loader;
   struct GLIBC_r_found_version *l_versions;
   unsigned int                  l_nversions;
@@ -142,12 +139,12 @@ struct GLIBC_link_map {
   ElfW(Addr) l_text_end;
 
   GLIBC_r_scope_elem  *l_scope_mem[4];
-  size_t                      l_scope_max;
+  size_t               l_scope_max;
   GLIBC_r_scope_elem **l_scope;
   GLIBC_r_scope_elem  *l_local_scope[2];
   struct GLIBC_r_file_id      l_file_id;
   struct GLIBC_r_search_path  l_runpath_dirs;
-  struct GLIBC_link_map    **l_initfini;
+  struct GLIBC_link_map     **l_initfini;
 
   void *l_reldeps;
 
@@ -163,10 +160,10 @@ struct GLIBC_link_map {
   struct GLIBC_link_map_machine l_mach;
 
   struct {
-    const ElfW(Sym) *sym;
-    int              type_class;
+    const ElfW(Sym)        *sym;
+    int                     type_class;
     struct GLIBC_link_map  *value;
-    const ElfW(Sym) *ret;
+    const ElfW(Sym)        *ret;
   } l_lookup_cache;
 
   void     *l_tls_initimage;
@@ -196,27 +193,14 @@ struct GLIBC_sym_val {
 
 static unsigned int GLIBC_dl_elf_hash(const char *name_arg) {
   const unsigned char *name = (const unsigned char *)name_arg;
-  unsigned long int hash = *name;
-  if (hash != 0 && name[1] != '\0') {
-    hash = (hash << 4) + name[1];
-    if (name[2] != '\0') {
-      hash = (hash << 4) + name[2];
-      if (name[3] != '\0') {
-        hash = (hash << 4) + name[3];
-        if (name[4] != '\0') {
-          hash = (hash << 4) + name[4];
-          name += 5;
-          while (*name != '\0') {
-            unsigned long int hi;
-            hash = (hash << 4) + *name++;
-            hi = hash & 0xf0000000;
-            hash ^= hi >> 24;
-          }
-          hash &= 0x0fffffff;
-        }
-      }
-    }
+  unsigned long int hash = 0;
+  while (*name != '\0') {
+    unsigned long int hi;
+    hash = (hash << 4) + *name++;
+    hi = hash & 0xf0000000;
+    hash ^= hi >> 24;
   }
+  hash &= 0x0fffffff;
   return hash;
 }
 
@@ -233,30 +217,14 @@ static const ElfW(Sym) *GLIBC_check_match(const char *const undef_name,
                                  const ElfW(Sym) *const sym,
                                  const Elf_Symndx symidx,
                                  const char *const strtab,
-                                 const GLIBC_link_map *const map,
-                                 const ElfW(Sym) **const versioned_sym,
-                                 int *const num_versions) {
-  unsigned int stt = ELFW(ST_TYPE)(sym->st_info);
+                                 const GLIBC_link_map *const map) {
+  unsigned int stt = _ElfW(ELF, __ELF_NATIVE_CLASS, ST_TYPE)(sym->st_info);
 
-  if ((sym->st_value == 0 && stt != STT_TLS))
-    return NULL;
-
-  if (((1 << stt) & ((1 << STT_NOTYPE) | (1 << STT_OBJECT) | (1 << STT_FUNC) | (1 << STT_COMMON) |
-                            (1 << STT_TLS) | (1 << STT_GNU_IFUNC))) == 0)
+  if (((1 << stt) & (1 << STT_FUNC)) == 0 || sym->st_value == 0)
     return NULL;
 
   if (sym != ref && strcmp(strtab + sym->st_name, undef_name))
     return NULL;
-
-  const ElfW(Half) *verstab = map->l_versyms;
-
-  if (verstab != NULL) {
-    if ((verstab[symidx] & 0x7fff) >= 2) {
-      if ((verstab[symidx] & 0x8000) == 0 && (*num_versions)++ == 0)
-        *versioned_sym = sym;
-      return NULL;
-    }
-  }
 
   return sym;
 }
@@ -287,12 +255,11 @@ static int GLIBC_do_lookup(const char *undef_name,
 
     Elf_Symndx symidx;
     int num_versions = 0;
-    const ElfW(Sym) *versioned_sym = NULL;
 
     const ElfW(Sym) *symtab = (ElfW(Sym) *)(map->l_info[DT_SYMTAB]->d_un.d_ptr);
     const char *strtab = (const char *)(map->l_info[DT_STRTAB]->d_un.d_ptr);
 
-    const ElfW(Sym) *sym;
+    const ElfW(Sym)  *sym = NULL;
     const ElfW(Addr) *bitmask = map->l_gnu_bitmask;
     if (bitmask) {
       ElfW(Addr) bitmask_word = bitmask[(new_hash / __ELF_NATIVE_CLASS) & map->l_gnu_bitmask_idxbits];
@@ -313,9 +280,7 @@ static int GLIBC_do_lookup(const char *undef_name,
                       &symtab[symidx],
                       symidx,
                       strtab,
-                      map,
-                      &versioned_sym,
-                      &num_versions);
+                      map);
               if (sym != NULL)
                 goto sym_found;
             }
@@ -335,22 +300,17 @@ static int GLIBC_do_lookup(const char *undef_name,
                 &symtab[symidx],
                 symidx,
                 strtab,
-                map,
-                &versioned_sym,
-                &num_versions);
+                map);
         if (sym != NULL)
           goto sym_found;
       }
     }
 
-    sym = num_versions == 1 ? versioned_sym : NULL;
-
     if (sym != NULL) {
     sym_found:
-      switch (ELFW(ST_BIND)(sym->st_info)) {
+      switch (_ElfW(ELF, __ELF_NATIVE_CLASS, ST_BIND)(sym->st_info)) {
         case STB_WEAK:
         case STB_GLOBAL:
-          /* Global definition.  Just what we need.  */
           result->s = sym;
           result->m = (GLIBC_link_map *)map;
           return 1;
@@ -370,7 +330,7 @@ static GLIBC_link_map *GLIBC_dl_lookup_symbol(const char *undef_name,
         GLIBC_link_map *skip_map) {
   const uint_fast32_t new_hash = GLIBC_dl_new_hash(undef_name);
   unsigned long int old_hash = 0xffffffff;
-  GLIBC_sym_val current_value = {NULL, NULL};
+
   GLIBC_r_scope_elem **scope = symbol_scope;
 
   size_t i = 0;
@@ -380,7 +340,7 @@ static GLIBC_link_map *GLIBC_dl_lookup_symbol(const char *undef_name,
     }
   }
 
-  /* Search the relevant loaded objects for a definition.  */
+  GLIBC_sym_val current_value = {NULL, NULL};
   for (size_t start = i; *scope != NULL; start = 0, ++scope) {
     int res = GLIBC_do_lookup(undef_name,
             new_hash,
@@ -413,22 +373,18 @@ static GLIBC_link_map *GLIBC_dl_lookup_symbol(const char *undef_name,
 }
 
 static void *GLIBC_do_sym(const char *name, void *who) {
-  const ElfW(Sym) *ref = NULL;
-  GLIBC_link_map *result;
-  ElfW(Addr) caller = (ElfW(Addr))who;
-
-  GLIBC_link_map *l = _dl_find_dso_for_object(caller);
+  GLIBC_link_map *l = _dl_find_dso_for_object((ElfW(Addr))who);
   GLIBC_link_map *match = l;
   while (l->l_loader != NULL)
     l = l->l_loader;
 
-  result = GLIBC_dl_lookup_symbol(name, match, &ref, l->l_local_scope, match);
+  const ElfW(Sym) *ref = NULL;
+  GLIBC_link_map *map = GLIBC_dl_lookup_symbol(name, match, &ref, l->l_local_scope, match);
 
-  if (ref) {
-    return (void *)(((result) ? (result)->l_addr : 0) + ref->st_value);
-  }
+  if (!ref)
+    return NULL;
 
-  return NULL;
+  return (void *)(((map) ? (map)->l_addr : 0) + ref->st_value);
 }
 
 void *GLIBC_find_dl_symbol(const char *name) {
