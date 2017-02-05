@@ -8,14 +8,14 @@
 namespace memhook {
   class MappedStorage : noncopyable {
   public:
-      virtual ~MappedStorage() {}
-      virtual void Add(uintptr_t address, std::size_t memsize, const CallStackInfo &callstack,
-        const chrono::system_clock::time_point &timestamp = chrono::system_clock::now()) = 0;
-      virtual bool Remove(uintptr_t address) = 0;
-      virtual bool UpdateSize(uintptr_t address, std::size_t memsize) = 0;
-      virtual void Clear() = 0;
-      virtual void Flush() = 0;
-      virtual std::string GetName() const = 0;
+    virtual ~MappedStorage() {}
+    virtual void Add(uintptr_t address, std::size_t memsize, const CallStackInfo &callstack,
+            const chrono::system_clock::time_point &timestamp = chrono::system_clock::now()) = 0;
+    virtual bool Remove(uintptr_t address) = 0;
+    virtual bool UpdateSize(uintptr_t address, std::size_t memsize) = 0;
+    virtual void Clear() = 0;
+    virtual void Flush() = 0;
+    virtual std::string GetName() const = 0;
   };
 
   unique_ptr<MappedStorage> NewSHMMappedStorage(const char *path, std::size_t size);

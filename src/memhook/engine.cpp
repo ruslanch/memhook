@@ -67,6 +67,8 @@ namespace memhook {
     if (status.second) {
       const_cast<TraceInfo &>(*status.first).callstack.swap(callstack);
     }
+
+    FlushLocalCache(now, m_cache_flush_timeout, false);
   }
 
   void Engine::DoHookFree(void *mem) {
@@ -220,11 +222,13 @@ namespace memhook {
   void *Engine::FlushLocalCacheThread() {
     NoHook no_hook;
     InterruptibleThread &thread = static_cast<InterruptibleThread &>(Thread::Current());
+    const chrono::seconds double_cache_flush_timeout = m_cache_flush_timeout * 2;
     chrono::system_clock::time_point tp;
     do {
-      tp = chrono::system_clock::now() + chrono::seconds(1);
+
+      tp = chrono::system_clock::now() + double_cache_flush_timeout;
       MutexLock lock(m_cache_mutex);
-      FlushLocalCache(chrono::system_clock::now(), m_cache_flush_timeout, false);
+      FlushLocalCache(chrono::system_clock::now(), double_cache_flush_timeout * 2, false);
       lock.Unlock();
     } while (thread.SleepUntil(tp));
 
