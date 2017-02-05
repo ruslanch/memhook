@@ -228,7 +228,7 @@ namespace memhook {
 
       tp = chrono::system_clock::now() + double_cache_flush_timeout;
       MutexLock lock(m_cache_mutex);
-      FlushLocalCache(chrono::system_clock::now(), double_cache_flush_timeout * 2, false);
+      FlushLocalCache(chrono::system_clock::now(), double_cache_flush_timeout, false);
       lock.Unlock();
     } while (thread.SleepUntil(tp));
 
