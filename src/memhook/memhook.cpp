@@ -403,7 +403,7 @@ extern "C" {
     do_cpp_free(p);
   }
 
-  void memhook_delete_sized(void* p, size_t size) MEMHOOK_NOEXCEPT {
+  void memhook_delete_sized(void* p, size_t) MEMHOOK_NOEXCEPT {
     do_cpp_free(p);
   }
 
@@ -423,7 +423,7 @@ extern "C" {
     do_cpp_free(mem);
   }
 
-  void memhook_deletearray_sized(void* mem, size_t size) MEMHOOK_THROW(std::bad_alloc) {
+  void memhook_deletearray_sized(void* mem, size_t) MEMHOOK_THROW(std::bad_alloc) {
     do_cpp_free(mem);
   }
 

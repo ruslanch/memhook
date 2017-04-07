@@ -25,7 +25,7 @@ namespace memhook {
         const time_t ttsec = chrono::system_clock::to_time_t(tinfo.timestamp);
         const int_least64_t nsec = (tinfo.timestamp - chrono::system_clock::from_time_t(ttsec)).count();
 
-        struct tm tm = {0};
+        struct tm tm = {};
         (void)localtime_r(&ttsec, &tm);
 
         using namespace boost::spirit::karma;

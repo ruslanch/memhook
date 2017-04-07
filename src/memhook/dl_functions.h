@@ -15,7 +15,7 @@ namespace memhook {
   public:
     enum LinkerInitialized { kLINKER_INITIALIZED };
 
-    DLFunctions(LinkerInitialized x) {}
+    DLFunctions(LinkerInitialized) {}
 
     typedef void (*free_t)(void *);
     typedef void *(*malloc_t)(size_t);

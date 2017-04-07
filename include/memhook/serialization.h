@@ -21,7 +21,7 @@ namespace memhook {
     template <typename SeqT>
     struct ReserveSeqCapacity {
       typedef SeqT Seq;
-      static void Call(Seq &seq, std::size_t size) {}
+      static void Call(Seq &, std::size_t) {}
     };
 
     template <typename T, typename U, typename A>

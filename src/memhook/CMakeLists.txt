@@ -6,6 +6,7 @@ include_directories(${LIBUNWIND_INCLUDE_DIR})
 
 add_definitions(
   -Wall
+  -Wextra
   -DMEMHOOK_TARGET_FILE_NAME="$<TARGET_LINKER_FILE_NAME:memhook>"
   -DPIC
   -D_REENTRANT=1

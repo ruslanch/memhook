@@ -11,9 +11,9 @@
 namespace memhook {
   void LogWriteToFile(int fileno, const char *buf, size_t len) {
 #if (HAVE_SYS_SYSCALL_H+0)
-    ::syscall(SYS_write, STDERR_FILENO, buf, len);
+    ::syscall(SYS_write, fileno, buf, len);
 #else
-    ::write(STDERR_FILENO, buf, len);
+    ::write(fileno, buf, len);
 #endif
   }
 

@@ -4,6 +4,8 @@
 #include <string.h>
 #include <boost/core/ignore_unused.hpp>
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 namespace memhook {
   namespace {
     struct WrappedFunctionInfo

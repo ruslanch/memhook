@@ -27,7 +27,7 @@ namespace memhook {
     return ptr;
   }
 
-  void StaticBufAlloc::free(void *ptr) {
+  void StaticBufAlloc::free(void *) {
     // do nothing
   }
 }

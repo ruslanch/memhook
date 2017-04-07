@@ -1,5 +1,6 @@
 add_definitions(
   -Wall
+  -Wextra
   -fvisibility=hidden
   -fPIC
   -DPIC

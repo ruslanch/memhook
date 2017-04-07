@@ -5,6 +5,8 @@
 
 #include "common.h"
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 struct GLIBC_link_map;
 
 extern "C" GLIBC_link_map *_dl_find_dso_for_object(const ElfW(Addr) addr);

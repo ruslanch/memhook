@@ -1,5 +1,6 @@
 add_definitions(
   -Wall
+  -Wextra
   -D_REENTRANT=1)
 
 add_executable(memview
