@@ -1,5 +1,5 @@
 # memhook - memory leak detector for Linux
-MemHook allows you to monitor all memory allocations during program execution
+MemHook allows you to monitor all memory allocations during program execution.
 ### Building memhook
 ```bash
 git clone https://github.com/ruslanch/memhook.git
@@ -39,7 +39,7 @@ or standalone:
 MEMHOOK_FILE=<path-to-db> LD_PRELOAD=<patch-to-libmemhook.so> <path-to-your-app>
 ```
 
-Now the monitored program is running, switch to the next terminal (or to another `screen` session) and run `memview`
+Now the monitored program is running, switch to the next terminal (or to another `screen` session) and run `memview`:
 
 ```bash
 memview -f <path-to-db> -a -c --min-time-from-start=1min --min-time-from-start=1min --min-time-from-now=10s
@@ -47,16 +47,16 @@ memview -f <path-to-db> -a -c --min-time-from-start=1min --min-time-from-start=1
 
 ### `libmemhook.so`options:
 ```
-MEMHOOK_NET_HOST=<хост>  - memdb host (if you are using memdb)
-MEMHOOK_NET_PORT=<порт>  - memdb port (if you are using memdb), optional (default 20015)
-MEMHOOK_SIZE_GB=<размер> - maximum memory allocations database size in gigabytes (default 8Gb for x64 and 1Gb for x86)
-MEMHOOK_SIZE_MB=<размер> - maximum memory allocations database size in megabytes
-MEMHOOK_SIZE_KB=<размер> - maximum memory allocations database size in kilobytes
-MEMHOOK_SIZE=<размер>    - maximum memory allocations database size in bytes
-MEMHOOK_FILE=<путь>      - memory allocations database file path
-MEMHOOK_SHM_NAME=<имя>   - use named shared memory for memory allocations database
-MEMHOOK_CACHE_FLUSH_INTERVAL=<время> - interval of flushing allocation information in the memory allocations database (by default is 2 seconds), example: 10s, 30min, 5h, etc
-MEMHOOK_CACHE_FLUSH_MAX_ITEMS - the maximum number of flushed allocation information records in the memory allocations database
+MEMHOOK_NET_HOST=<host>  - memdb host (if you are using memdb)
+MEMHOOK_NET_PORT=<port>  - memdb port (if you are using memdb), optional (default is 20015)
+MEMHOOK_SIZE_GB=<size>   - maximum memory allocations database size in gigabytes (default 8Gb for x64 and 1Gb for x86)
+MEMHOOK_SIZE_MB=<size>   - maximum memory allocations database size in megabytes
+MEMHOOK_SIZE_KB=<size>   - maximum memory allocations database size in kilobytes
+MEMHOOK_SIZE=<size>      - maximum memory allocations database size in bytes
+MEMHOOK_FILE=<file path> - memory allocations database file path
+MEMHOOK_SHM_NAME=<name>  - use named shared memory for memory allocations database
+MEMHOOK_CACHE_FLUSH_INTERVAL=<time> - interval of flushing allocation information in the memory allocations database (default is 2 seconds), example: 10s, 30min, 5h, etc
+MEMHOOK_CACHE_FLUSH_MAX_ITEMS=<num> - the maximum number of flushed allocation information records in the memory allocations database
 ```
 
 ### `memdb` options:
