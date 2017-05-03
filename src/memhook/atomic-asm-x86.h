@@ -90,7 +90,7 @@ namespace memhook {
   }
 
   inline atomic32_t Barrier_AtomicAddAndFetch(volatile atomic32_t *ptr, atomic32_t value) {
-    return NoBarrier_AtomicFetchAndAdd(ptr, value);
+    return NoBarrier_AtomicAddAndFetch(ptr, value);
   }
 
 #ifdef __x86_64__
