@@ -85,20 +85,12 @@ Options:
   -t [ --sort-by-time ]                 sort by timestamp
   -s [ --sort-by-size ]                 sort by allocation size
   -p [ --sort-by-address ]              sort by allocation address
-  --min-time-from-now arg               minimal time interval from current time
-                                        to allocation time (10s, 30min, 5h)
-  --max-time-from-now arg               maximum time interval from current time
-                                        to allocation time (10s, 30min, 5h)
-  --min-time-from-start arg             minimal time interval from program
-                                        start to allocation time (10s, 30min,
-                                        5h)
-  --max-time-from-start arg             maximum time interval from program
-                                        start to allocation time (10s, 30min,
-                                        5h)
-  -n [ --min-time ] arg                 minimal allocation datetime (YYYY-MM-DD
-                                        HH:MM:SS)
-  -x [ --max-time ] arg                 maximum allocation datetime (YYYY-MM-DD
-                                        HH:MM:SS)
+  --min-time-from-now arg               minimal time interval from current time to allocation time (10s, 30min, 5h)
+  --max-time-from-now arg               maximum time interval from current time to allocation time (10s, 30min, 5h)
+  --min-time-from-start arg             minimal time interval from program start to allocation time (10s, 30min, 5h)
+  --max-time-from-start arg             maximum time interval from program start to allocation time (10s, 30min, 5h)
+  -n [ --min-time ] arg                 minimal allocation datetime (YYYY-MM-DD HH:MM:SS)
+  -x [ --max-time ] arg                 maximum allocation datetime (YYYY-MM-DD HH:MM:SS)
   -z [ --min-size ] arg                 minimal allocation size (in bytes)
   --get-storage-info
   --no-lock [=arg(=1)]
