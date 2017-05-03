@@ -1,6 +1,6 @@
-# memhook - memory leak detector for Linux
+# MemHook - memory leak detector for Linux
 MemHook allows you to monitor all memory allocations during program execution.
-### Building memhook
+### Building MemHook
 ```bash
 git clone https://github.com/ruslanch/memhook.git
 cd ./memhook
@@ -15,7 +15,7 @@ ls $TOOLCHAIN_HOST/memhook/bin/*
 ```
 Now you have library `libmemhook.so` and programs `memdb` and `memview`.
 
-### Using memhook
+### Using MemHook
 MemHook is split into three parts:
 1. `libmemhook.so` - is a dynamic library that redefines memory allocation functions in the monitored program. `libmemhook.so` can work both separately and together with `memdb`.
 2. `memdb` - memory allocations database server.
@@ -61,7 +61,7 @@ MEMHOOK_CACHE_FLUSH_MAX_ITEMS=<num> - the maximum number of flushed allocation i
 
 ### `memdb` options:
 ```
-Usage: MemDB [options] [-m | -f path] [-p PORT_NUM]
+Usage: memdb [options] [-m | -f path] [-p PORT_NUM]
 Options:
   --help                                show help message
   -m [ --shared-memory ] [=arg(=ShmMemHook)]

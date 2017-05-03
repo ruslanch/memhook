@@ -17,7 +17,7 @@ namespace memhook {
     namespace po = boost::program_options;
 
     void usage(const po::options_description &options) {
-      std::cout << "Usage: MemDB [options] [-m | -f path] [-p PORT_NUM]\n";
+      std::cout << "Usage: memdb [options] [-m | -f path] [-p PORT_NUM]\n";
       std::cout << options << std::endl;
     }
 
