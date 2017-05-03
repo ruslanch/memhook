@@ -18,7 +18,7 @@ namespace memhook {
 
     m_cache_flush_timeout = chrono::seconds(2);
     try {
-      const char *cache_flush_timeout_env = getenv("MEMHOOK_CACHE_FLUSH_TIMEOUT");
+      const char *cache_flush_timeout_env = getenv("MEMHOOK_CACHE_FLUSH_INTERVAL");
       if (cache_flush_timeout_env) {
         ChronoDurationFromString(cache_flush_timeout_env, m_cache_flush_timeout);
       }
