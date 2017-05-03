@@ -16,11 +16,6 @@ add_definitions(
     -DBOOST_SPIRIT_USE_PHOENIX_V3=1
     -DBOOST_CHRONO_VERSION=2)
 
-set(LEVELDB_NO_SYSTEM_PATHS ON)
-set(LEVELDB_USE_STATIC_LIBS ON)
-find_package(leveldb REQUIRED)
-include_directories(${LEVELDB_INCLUDE_DIR})
-
 add_subdirectory(memhookcore)
 add_subdirectory(memhook)
 add_subdirectory(memdb)
