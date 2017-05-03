@@ -11,6 +11,5 @@ add_executable(memdb
 target_link_libraries(memdb
   -Wl,--no-whole-archive memhookcore
   ${Boost_LIBRARIES}
-  ${LEVELDB_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   rt)

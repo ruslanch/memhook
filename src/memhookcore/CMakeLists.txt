@@ -12,5 +12,4 @@ add_library(memhookcore STATIC
     file_based_mapped_storage_helpers.cpp
     mmf_mapped_storage.cpp
     shm_mapped_storage.cpp
-    network_mapped_storage.cpp
-    leveldb_storage.cpp)
+    network_mapped_storage.cpp)

@@ -116,7 +116,6 @@ int main(int argc, char const *argv[]) {
     std::string path;
     unique_ptr<MappedViewWorks> works;
 
-    boost::tuple<std::string, unique_ptr<MappedViewWorks> > ctx;
     if (options_map.count("mapped-file")) {
       path = options_map["mapped-file"].as<std::string>();
       works = NewMMFMappedViewWorks();

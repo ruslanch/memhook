@@ -17,7 +17,10 @@ LIBUNWIND_PATCHES_DIR="$(readlink -f $SCRIPT_ROOT/../patches/libunwind)"
 rm_nofail "$LIBUNWIND_BUILD_ROOT"
 git clone "$LIBUNWIND_GIT_URL" "$LIBUNWIND_BUILD_ROOT" && pushd "$LIBUNWIND_BUILD_ROOT"
 git checkout $LIBUNWIND_GIT_BRANCH
-git apply "$LIBUNWIND_PATCHES_DIR/$LIBUNWIND_GIT_BRANCH/dwarf-memleak.patch"
+
+if [ -f "$LIBUNWIND_PATCHES_DIR/$LIBUNWIND_GIT_BRANCH/dwarf-memleak.patch" ]; then
+    git apply "$LIBUNWIND_PATCHES_DIR/$LIBUNWIND_GIT_BRANCH/dwarf-memleak.patch"
+fi
 
 LIBUNWIND_CC=gcc
 if [ -n "$TOOLCHAIN_HOST" ]; then
