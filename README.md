@@ -42,7 +42,7 @@ MEMHOOK_FILE=<path-to-db> LD_PRELOAD=<patch-to-libmemhook.so> <path-to-your-app>
 Now the monitored program is running, switch to the next terminal (or to another `screen` session) and run `memview`:
 
 ```bash
-memview -f <path-to-db> -a -c --min-time-from-start=1min --min-time-from-start=1min --min-time-from-now=10s
+memview -f <path-to-db> -a -c --min-time-from-start=1min --min-time-from-now=10s
 ```
 
 ### `libmemhook.so`options:
