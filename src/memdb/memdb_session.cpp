@@ -2,6 +2,8 @@
 #include <memhook/serialization.h>
 #include <boost/bind.hpp>
 
+#include <iostream>
+
 namespace memhook {
   MemDBSession::MemDBSession(const shared_ptr<MappedStorageCreator> &storage_creator,
           boost::asio::io_service &io_service)

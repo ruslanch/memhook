@@ -48,8 +48,6 @@ namespace memhook {
             const boost::chrono::seconds &timeout,
             bool dump_all);
 
-    void *FlushLocalCacheThread();
-
     unique_ptr<MappedStorage> m_storage;
 
     typedef boost::multi_index_container<
@@ -82,9 +80,6 @@ namespace memhook {
     };
 
     CallStackUnwindProcInfoPolicy m_getprocinfo_policy;
-
-    ThreadRunnableBind0<Engine> m_cache_thread_runnable;
-    InterruptibleThread m_cache_thread;
   };
 
 }  // ns memhook

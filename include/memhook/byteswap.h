@@ -3,17 +3,7 @@
 
 #include <memhook/common.h>
 
-#if (HAVE_GLIBC_BYTESWAP + 0)
-#include <byteswap.h>
-#define MEMHOOK_BYTESWAP_16(x) bswap_16(x)
-#define MEMHOOK_BYTESWAP_32(x) bswap_32(x)
-#define MEMHOOK_BYTESWAP_64(x) bswap_64(x)
-#elif (HAVE_GLIBC_BITS_BYTESWAP + 0)
-#include <byteswap.h>
-#define MEMHOOK_BYTESWAP_16(x) __bswap_16(x)
-#define MEMHOOK_BYTESWAP_32(x) __bswap_32(x)
-#define MEMHOOK_BYTESWAP_64(x) __bswap_64(x)
-#elif (HAVE_BSD_BYTESWAP + 0)
+#if (HAVE_BSD_BYTESWAP + 0)
 #include <sys/endian.h>
 #define MEMHOOK_BYTESWAP_16(x) swap16(x)
 #define MEMHOOK_BYTESWAP_32(x) swap32(x)
@@ -34,6 +24,16 @@ namespace memhook {
 #endif
 #define MEMHOOK_BYTESWAP_32(x) __builtin_bswap32(x)
 #define MEMHOOK_BYTESWAP_64(x) __builtin_bswap64(x)
+#elif (HAVE_GLIBC_BITS_BYTESWAP + 0)
+#include <byteswap.h>
+#define MEMHOOK_BYTESWAP_16(x) __bswap_16(x)
+#define MEMHOOK_BYTESWAP_32(x) __bswap_32(x)
+#define MEMHOOK_BYTESWAP_64(x) __bswap_64(x)
+#elif (HAVE_GLIBC_BYTESWAP + 0)
+#include <byteswap.h>
+#define MEMHOOK_BYTESWAP_16(x) bswap_16(x)
+#define MEMHOOK_BYTESWAP_32(x) bswap_32(x)
+#define MEMHOOK_BYTESWAP_64(x) bswap_64(x)
 #endif
 
 #if (SYSTEM_BIG_ENDIAN + 0)

@@ -1,6 +1,8 @@
 #include "thread.h"
 #include "check.h"
 
+#include <errno.h>
+
 #define CHECK_SUCCEEDED(_call)  MEMHOOK_CHECK((_call) == 0)
 #define EXPECT_SUCCEEDED(_call) MEMHOOK_EXPECT((_call) == 0)
 

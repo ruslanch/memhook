@@ -7,9 +7,13 @@ fetch_unpack_file() {
     local filename=
     if (( $# >= 2 ));      then filename=$2; fi
     if [ -z "$filename" ]; then filename=$(basename "$file_url"); fi
-    if [ -f "$filename" ]; then rm -vf "$filename"; fi
     echo "Downloading and unpacking file $filename from url $file_url..."
-    wget "$file_url" -O "$filename" && tar -xpf "$filename" && rm -f "$filename"
+    if [ ! -f "$filename" ]; then
+        wget "$file_url" -O "$filename";
+    else
+        echo "...file $filename alredy downloaded..."
+    fi
+    tar -xpf "$filename"
     echo "...downloading and unpacking file $filename from url $file_url completed OK"
 }
 #export -f fetch_unpack_file

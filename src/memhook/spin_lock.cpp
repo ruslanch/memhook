@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sched.h>
 #include <time.h>
+#include <errno.h>
 
 #if defined(__GLIBC__) && !defined(_SC_NPROCESSORS_ONLN)
 #  include <sys/sysinfo.h>

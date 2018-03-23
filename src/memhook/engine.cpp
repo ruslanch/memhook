@@ -8,8 +8,9 @@ namespace memhook {
   void Engine::OnInitialize() {
     try {
       unique_ptr<MappedStorage> storage(NewStorage());
-      if (storage)
+      if (storage) {
         m_storage.swap(storage);
+      }
     } catch (const std::exception &e) {
       LogPrintf(kERROR, "Can't create storage: %s\n", e.what());
     }
@@ -37,15 +38,9 @@ namespace memhook {
     if (getprocinfo_policy && getprocinfo_policy[0] != '0') {
       m_getprocinfo_policy = kUnwindCallStackWhen;
     }
-
-    m_cache_thread_runnable.Init(this, &Engine::FlushLocalCacheThread);
-    m_cache_thread.Create(&m_cache_thread_runnable);
   }
 
   void Engine::OnDestroy() {
-    m_cache_thread.Interrupt();
-    m_cache_thread.Join();
-
     MutexLock lock(m_cache_mutex);
     FlushLocalCache(chrono::system_clock::now(), boost::chrono::seconds(0), true);
     m_storage.reset();
@@ -80,7 +75,6 @@ namespace memhook {
     if (iter != m_cache.end()) {
       m_cache.erase(iter);
     } else if (m_storage) {
-      lock.Unlock();
       m_storage->Remove(reinterpret_cast<uintptr_t>(mem));
     }
   }
@@ -172,12 +166,14 @@ namespace memhook {
         m_storage->Add(iter->address, iter->memsize, iter->callstack, iter->timestamp);
       }
 
-      if (n)
+      if (n) {
         m_storage->Flush();
+      }
     }
 
-    if (iter != index1.begin())
+    if (iter != index1.begin()) {
       index1.erase(index1.begin(), iter);
+    }
   }
 
   void Engine::DoFlushCallStackCache() {
@@ -218,21 +214,4 @@ namespace memhook {
       instance->DoFlushCallStackCache();
     }
   }
-
-  void *Engine::FlushLocalCacheThread() {
-    NoHook no_hook;
-    InterruptibleThread &thread = static_cast<InterruptibleThread &>(Thread::Current());
-    const chrono::seconds double_cache_flush_timeout = m_cache_flush_timeout * 2;
-    chrono::system_clock::time_point tp;
-    do {
-
-      tp = chrono::system_clock::now() + double_cache_flush_timeout;
-      MutexLock lock(m_cache_mutex);
-      FlushLocalCache(chrono::system_clock::now(), double_cache_flush_timeout, false);
-      lock.Unlock();
-    } while (thread.SleepUntil(tp));
-
-    return NULL;
-  }
-
 }  // ns memhook

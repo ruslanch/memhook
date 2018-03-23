@@ -140,8 +140,9 @@ namespace memhook {
       generate(sink, "size=" << ulong_long << ", times=" << ulong_long << "\n",
               tinfo.memsize, tinfo.times);
 
-      if (view.GetOptionFlag(MappedView::kShowCallStack))
+      if (view.GetOptionFlag(MappedView::kShowCallStack)) {
         boost::for_each(tinfo.callstack, *this);
+      }
 
       return true;
     }

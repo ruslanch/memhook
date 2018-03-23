@@ -13,6 +13,8 @@ add_executable(memview
 
 target_link_libraries(memview
   -Wl,--no-whole-archive memhookcore
+  -static-libgcc
+  -static-libstdc++
   ${Boost_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   rt)

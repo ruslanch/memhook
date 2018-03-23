@@ -3,6 +3,8 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <iostream>
+
 namespace memhook
 {
 

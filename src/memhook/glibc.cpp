@@ -9,7 +9,7 @@
 
 struct GLIBC_link_map;
 
-extern "C" GLIBC_link_map *_dl_find_dso_for_object(const ElfW(Addr) addr);
+extern "C" GLIBC_link_map *_dl_find_dso_for_object(const ElfW(Addr) addr) __attribute__((weak));
 
 struct GLIBC_r_scope_elem {
   struct GLIBC_link_map **r_list;
@@ -374,8 +374,19 @@ static GLIBC_link_map *GLIBC_dl_lookup_symbol(const char *undef_name,
   return current_value.m;
 }
 
+static GLIBC_link_map *GLIBC_dl_find_dso_for_object(const ElfW(Addr) addr)
+{
+  if (_dl_find_dso_for_object)
+    return _dl_find_dso_for_object(addr);
+  return NULL;
+}
+
 static void *GLIBC_do_sym(const char *name, void *who) {
-  GLIBC_link_map *l = _dl_find_dso_for_object((ElfW(Addr))who);
+  ElfW(Addr) caller = (ElfW(Addr))who;
+  GLIBC_link_map *l = GLIBC_dl_find_dso_for_object(caller);
+  if (!l)
+    return NULL;
+
   GLIBC_link_map *match = l;
   while (l->l_loader != NULL)
     l = l->l_loader;

@@ -10,6 +10,8 @@ add_executable(memdb
 
 target_link_libraries(memdb
   -Wl,--no-whole-archive memhookcore
+  -static-libgcc
+  -static-libstdc++
   ${Boost_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   rt)

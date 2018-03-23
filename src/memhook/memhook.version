@@ -1,0 +1,16 @@
+memhook {
+    local:
+        *boost*;
+        _ZG*;
+        _ZN*;
+        _ZS*;
+        _ZT*;
+        _U*;
+        __cxa_*;
+        __gxx_*;
+        __gcclibcxx_*;
+        __dynamic_cast;
+        __bss_start;
+        _edata;
+        _end;
+};
