@@ -58,9 +58,11 @@ namespace memhook
     return GetDLFunctions().posix_memalign(memptr, alignment, size);
   }
 
+#if (HAVE_CFREE + 0)
   void do_cfree(void *mem) MEMHOOK_NOEXCEPT {
     GetDLFunctions().cfree(mem);
   }
+#endif
 
 #if (HAVE_ALIGNED_ALLOC+0)
   void *do_aligned_alloc(size_t alignment, size_t size) MEMHOOK_NOEXCEPT {
@@ -299,6 +301,7 @@ extern "C" {
     return rs;
   }
 
+#if (HAVE_CFREE + 0)
   void memhook_cfree(void *mem) MEMHOOK_NOEXCEPT {
     if (NoHook::IsNested()) {
       do_cfree(mem);
@@ -308,6 +311,7 @@ extern "C" {
       do_cfree(mem);
     }
   }
+#endif
 
 #if (HAVE_ALIGNED_ALLOC+0)
   void *memhook_aligned_alloc(size_t alignment, size_t size) MEMHOOK_NOEXCEPT {
@@ -594,7 +598,11 @@ MEMHOOK_API void *malloc(size_t size)                          MEMHOOK_NOEXCEPT 
 MEMHOOK_API void free(void *ptr)                               MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_free);
 MEMHOOK_API void *realloc(void *ptr, size_t size)              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_realloc);
 MEMHOOK_API void *calloc(size_t n, size_t size)                MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_calloc);
+
+#if (HAVE_CFREE + 0)
 MEMHOOK_API void cfree(void *ptr)                              MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_cfree);
+#endif
+
 MEMHOOK_API void *memalign(size_t align, size_t s)             MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_memalign);
 MEMHOOK_API int posix_memalign(void **r, size_t a, size_t s)   MEMHOOK_NOEXCEPT MEMHOOK_ALIAS(memhook_posix_memalign);
 
@@ -614,7 +622,9 @@ MEMHOOK_API void *__libc_malloc(size_t size)                                    
 MEMHOOK_API void __libc_free(void *ptr)                                         MEMHOOK_ALIAS(memhook_free);
 MEMHOOK_API void *__libc_realloc(void *ptr, size_t size)                        MEMHOOK_ALIAS(memhook_realloc);
 MEMHOOK_API void *__libc_calloc(size_t n, size_t size)                          MEMHOOK_ALIAS(memhook_calloc);
+#if (HAVE_CFREE + 0)
 MEMHOOK_API void __libc_cfree(void *ptr)                                        MEMHOOK_ALIAS(memhook_cfree);
+#endif
 MEMHOOK_API void *__libc_memalign(size_t align, size_t s)                       MEMHOOK_ALIAS(memhook_memalign);
 MEMHOOK_API int __posix_memalign(void **r, size_t a, size_t s)                  MEMHOOK_ALIAS(memhook_posix_memalign);
 
